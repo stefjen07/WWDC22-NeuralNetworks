@@ -64,6 +64,8 @@ public struct LayerWrapper: Codable {
 }
 
 public class Layer: Codable {
+    var maxWeight: Float = 0, minWeight: Float = 0, lastMaxWeight: Float = 0, lastMinWeight: Float = 0
+    
     var neurons: [Neuron] = []
     fileprivate var function: ActivationFunction
     fileprivate var output: DataPiece?
@@ -548,9 +550,15 @@ public class Dense: Layer {
                 }
             })
         }
+        lastMinWeight = minWeight
+        lastMaxWeight = maxWeight
+        minWeight = 0
+        maxWeight = 0.5
         for neuron in neurons {
             for i in 0..<min(neuron.synapses.count, neuron.weights.count) {
-                neuron.synapses[i].strokeColor = weightToColor(CGFloat(neuron.weights[i]))
+                minWeight = min(minWeight, neuron.weights[i])
+                maxWeight = max(maxWeight, neuron.weights[i])
+                neuron.synapses[i].strokeColor = weightToColor(CGFloat((neuron.weights[i] - lastMinWeight) / lastMaxWeight))
             }
         }
     }

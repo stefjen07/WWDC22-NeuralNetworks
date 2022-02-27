@@ -99,6 +99,7 @@ extension NeuralNetwork {
     }
     
     public func generateScene() {
+        trainScene.backgroundColor = .white
         generateInputNeurons()
         generatePositions()
         generateObjects()
@@ -108,5 +109,5 @@ extension NeuralNetwork {
 }
 
 func weightToColor(_ value: CGFloat) -> NSColor {
-    return NSColor(red: 1-value, green: value, blue: 0, alpha: 1)//NSColor(red: 1-value, green: value, blue: CGFloat.random(in: 0..<1), alpha: 1)
+    return NSColor(red: 1-value, green: value, blue: 0, alpha: 1)
 }

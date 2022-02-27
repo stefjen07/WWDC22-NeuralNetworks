@@ -110,6 +110,11 @@ public struct DataItem: Codable {
         self.input = DataPiece(size: inputSize, body: input)
         self.output = DataPiece(size: outputSize, body: output)
     }
+    
+    public init(input: [Float], output: [Float]) {
+        self.input = DataPiece(size: .init(width: input.count), body: input)
+        self.output = DataPiece(size: .init(width: output.count), body: output)
+    }
 }
 
 public struct Dataset: Codable {
@@ -301,6 +306,7 @@ final public class NeuralNetwork: Codable {
             }
             print("Epoch \(epoch+1), error \(error).")
         }
+        print(layers.first as? Dense)
         return error
     }
     
