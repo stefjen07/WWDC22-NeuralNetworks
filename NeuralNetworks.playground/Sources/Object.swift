@@ -49,11 +49,19 @@ extension NeuralNetwork {
         for i in 0..<layers.count {
             for j in 0..<layers[i].neurons.count {
                 if let position = layers[i].neurons[j].position {
-                    let node = SKShapeNode(circleOfRadius: 1)
+                    let node = SKShapeNode(circleOfRadius: 20)
+                    node.zPosition = 1
                     node.position = position
                     node.fillColor = .black
                     trainScene.addChild(node)
+                    
+                    let imageNode = SKSpriteNode(color: .black, size: .init(width: 40, height: 40))
+                    imageNode.zPosition = 2
+                    imageNode.position = .init(x: 0, y: 0)
+                    node.addChild(imageNode)
+                    
                     layers[i].neurons[j].object = node
+                    layers[i].neurons[j].imageObject = imageNode
                 }
             }
         }
@@ -108,6 +116,12 @@ extension NeuralNetwork {
     
 }
 
-func weightToColor(_ value: CGFloat) -> NSColor {
-    return NSColor(red: 1-value, green: value, blue: 0, alpha: 1)
+#if os(iOS)
+typealias SystemColor = UIColor
+#else
+typealias SystemColor = NSColor
+#endif
+
+func weightToColor(_ value: CGFloat) -> SystemColor {
+    return SystemColor(red: 1-value, green: value, blue: 0, alpha: 1)
 }

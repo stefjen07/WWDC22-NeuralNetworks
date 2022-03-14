@@ -74,27 +74,6 @@ public struct DataPiece: Codable, Equatable {
         self.body = Array(repeating: .zero, count: count)
         self.body[label] = 1
     }
-    
-    public init(image: CGImage) {
-        let colorSpace = CGColorSpaceCreateDeviceGray()
-        let width = 32
-        let height = 32
-        let bitsPerComponent = image.bitsPerComponent
-        let bytesPerRow = image.bytesPerRow
-        let totalBytes = height * bytesPerRow
-        var buffer = Array(repeating: UInt8.zero, count: totalBytes)
-        let contextRef = CGContext(data: &buffer, width: width, height: height, bitsPerComponent: bitsPerComponent, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: 0)!
-        contextRef.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
-        self.size = .init(width: width, height: height)
-        var body = [Float]()
-        buffer.withUnsafeBufferPointer { bufferPtr in
-            let pixelValues = Array<UInt8>(bufferPtr)
-            body = pixelValues.map { v in
-                return Float(v)/Float(UInt8.max)
-            }
-        }
-        self.body = body
-    }
 }
 
 public struct DataItem: Codable {
@@ -114,6 +93,17 @@ public struct DataItem: Codable {
     public init(input: [Float], output: [Float]) {
         self.input = DataPiece(size: .init(width: input.count), body: input)
         self.output = DataPiece(size: .init(width: output.count), body: output)
+    }
+    
+    public init(decimal: Int, output: Bool) {
+        var binary = [Int]()
+        var currentDecimal = decimal
+        while decimal > 0 {
+            binary.append(currentDecimal % 2)
+            currentDecimal /= 2
+        }
+        self.input = DataPiece(size: .init(width: binary.count), body: binary.reversed().map { Float($0) })
+        self.output = DataPiece(size: .init(width: 1), body: [output ? 1 : 0])
     }
 }
 
@@ -147,50 +137,6 @@ public struct Dataset: Codable {
     public init(items: [DataItem]) {
         self.items = items
     }
-    
-    public init(folderPath: String) {
-        self.items = []
-        let manager = FileManager.default
-        var inputs = [DataPiece]()
-        var outputs = [Int]()
-        var classCount = 0
-        do {
-            for content in try manager.contentsOfDirectory(atPath: folderPath) {
-                let isDirectory = UnsafeMutablePointer<ObjCBool>.allocate(capacity: 1)
-                let path = folderPath+"/"+content
-                if manager.fileExists(atPath: path, isDirectory: UnsafeMutablePointer<ObjCBool>(isDirectory)) {
-                    if isDirectory.pointee.boolValue {
-                        for file in try manager.contentsOfDirectory(atPath: path) {
-                            let isDirectory = UnsafeMutablePointer<ObjCBool>.allocate(capacity: 1)
-                            let path = path+"/"+file
-                            if manager.fileExists(atPath: path, isDirectory: UnsafeMutablePointer<ObjCBool>(isDirectory)) {
-                                if !isDirectory.pointee.boolValue {
-                                    let url = URL(fileURLWithPath: path)
-                                    let splits = file.split(separator: ".")
-                                    if splits.count < 2 {
-                                        continue
-                                    }
-                                    if splits.last  == "png" {
-                                        let data = try Data(contentsOf: url)
-                                        guard let provider = CGDataProvider(data: NSData(data: data)) else { fatalError() }
-                                        guard let image = CGImage(pngDataProviderSource: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent) else { fatalError() }
-                                        inputs.append(.init(image: image))
-                                        outputs.append(classCount)
-                                    }
-                                }
-                            }
-                        }
-                        classCount += 1
-                    }
-                }
-            }
-        } catch {
-            fatalError(error.localizedDescription)
-        }
-        for i in 0..<inputs.count {
-            items.append(.init(input: inputs[i], output: classifierOutput(classes: classCount, correct: outputs[i])))
-        }
-    }
 }
 
 final public class NeuralNetwork: Codable {
@@ -202,6 +148,7 @@ final public class NeuralNetwork: Codable {
     public var trainScene = SKScene(size: .init(width: 400, height: 800))
     public var delay = 100
     var inputNeurons: [Neuron] = []
+    var testInput: DataPiece?
     
     private enum CodingKeys: String, CodingKey {
         case layers
@@ -210,13 +157,29 @@ final public class NeuralNetwork: Codable {
         case batchSize
     }
     
+    private func generateCheckPoints() -> [CGPoint] {
+        return (0..<canvasSize).flatMap { x in
+            (0..<canvasSize).map { y in
+                return CGPoint(x: x - canvasSize / 2, y: y - canvasSize / 2)
+            }
+        }
+    }
+    
+    func generateOutputMaps(input: DataPiece) {
+        generateCheckPoints().forEach { point in
+            _ = forward(networkInput: input, savePoint: .init(x: point.x + CGFloat(canvasSize) / 2, y: point.y + CGFloat(canvasSize) / 2))
+        }
+    }
+    
+    func showOutputMaps() {
+        for i in 0..<layers.count {
+            layers[i].showOutputMaps()
+        }
+    }
+    
     public func printSummary() {
         for rawLayer in layers {
             switch rawLayer {
-            case _ as Flatten:
-                print("Flatten layer")
-            case let layer as Convolutional2D:
-                print("Convolutional 2D layer: \(layer.filters.count) filters")
             case let layer as Dense:
                 print("Dense layer: \(layer.neurons.count) neurons")
             case let layer as Dropout:
@@ -236,21 +199,18 @@ final public class NeuralNetwork: Codable {
         try container.encode(batchSize, forKey: .batchSize)
     }
     
-    public init(fileName: String) {
+    static func fromFile(fileName: String) -> NeuralNetwork? {
         let decoder = JSONDecoder()
         let url = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(fileName)
         guard let data = try? Data(contentsOf: url) else {
             print("Unable to read model from file.")
-            return
+            return nil
         }
         guard let decoded = try? decoder.decode(NeuralNetwork.self, from: data) else {
             print("Unable to decode model.")
-            return
+            return nil
         }
-        self.layers = decoded.layers
-        self.learningRate = decoded.learningRate
-        self.epochs = decoded.epochs
-        self.batchSize = decoded.batchSize
+        return decoded
     }
     
     public init() {
@@ -302,6 +262,10 @@ final public class NeuralNetwork: Codable {
                     }
                 }
                 shuffledSet.removeFirst(min(self.batchSize,shuffledSet.count))
+                if let testInput = testInput {
+                    generateOutputMaps(input: testInput)
+                    showOutputMaps()
+                }
                 usleep(useconds_t(delay * 1000))
             }
             print("Epoch \(epoch+1), error \(error).")
@@ -333,10 +297,10 @@ final public class NeuralNetwork: Codable {
         }
     }
     
-    private func forward(networkInput: DataPiece) -> DataPiece {
+    private func forward(networkInput: DataPiece, savePoint: CGPoint? = nil) -> DataPiece {
         var input = networkInput
         for i in 0..<layers.count {
-            input = layers[i].forward(input: input, dropoutEnabled: dropoutEnabled)
+            input = layers[i].forward(input: input, dropoutEnabled: dropoutEnabled, savePoint: savePoint)
         }
         return input
     }
@@ -389,6 +353,7 @@ struct Neuron: Codable {
     var bias: Float
     var biasDelta: Float
     var object: SKNode? = nil
+    var imageObject: SKSpriteNode? = nil
     var synapses: [SKShapeNode] = []
     var position: CGPoint?
 }
