@@ -13,47 +13,47 @@ public struct DataSize: Codable {
     var width: Int
     var height: Int?
     var depth: Int?
-    
+
     public init(width: Int) {
         type = .oneD
         self.width = width
     }
-    
+
     public init(width: Int, height: Int) {
         type = .twoD
         self.width = width
         self.height = height
     }
-    
+
     public init(width: Int, height: Int, depth: Int) {
         type = .threeD
         self.width = width
         self.height = height
         self.depth = depth
     }
-    
+
 }
 
 public struct DataPiece: Codable, Equatable {
     public static func == (lhs: DataPiece, rhs: DataPiece) -> Bool {
         return lhs.body == rhs.body
     }
-    
+
     public var size: DataSize
     public var body: [Float]
-    
+
     func get(x: Int) -> Float {
         return body[x]
     }
-    
+
     func get(x: Int, y: Int) -> Float {
         return body[x+y*size.width]
     }
-    
+
     func get(x: Int, y: Int, z: Int) -> Float {
         return body[z+(x+y*size.width)*size.depth!]
     }
-    
+
     public init(size: DataSize, body: [Float]) {
         var flatSize = size.width
         if let height = size.height {
@@ -68,7 +68,7 @@ public struct DataPiece: Codable, Equatable {
         self.size = size
         self.body = body
     }
-    
+
     public init(label: Int, count: Int) {
         self.size = .init(width: count)
         self.body = Array(repeating: .zero, count: count)
@@ -79,22 +79,22 @@ public struct DataPiece: Codable, Equatable {
 public struct DataItem: Codable {
     var input: DataPiece
     var output: DataPiece
-    
+
     public init(input: DataPiece, output: DataPiece) {
         self.input = input
         self.output = output
     }
-    
+
     public init(input: [Float], inputSize: DataSize, output: [Float], outputSize: DataSize) {
         self.input = DataPiece(size: inputSize, body: input)
         self.output = DataPiece(size: outputSize, body: output)
     }
-    
+
     public init(input: [Float], output: [Float]) {
         self.input = DataPiece(size: .init(width: input.count), body: input)
         self.output = DataPiece(size: .init(width: output.count), body: output)
     }
-    
+
     public init(decimal: Int, output: Bool) {
         var binary = [Int]()
         var currentDecimal = decimal
@@ -109,7 +109,7 @@ public struct DataItem: Codable {
 
 public struct Dataset: Codable {
     public var items: [DataItem]
-    
+
     public func save(to url: URL) {
         let encoder = JSONEncoder()
         guard let encoded = try? encoder.encode(self) else {
@@ -122,7 +122,7 @@ public struct Dataset: Codable {
             print("Unable to write model to disk.")
         }
     }
-    
+
     public init(from url: URL) {
         let decoder = JSONDecoder()
         guard let data = try? Data(contentsOf: url) else {
@@ -133,7 +133,7 @@ public struct Dataset: Codable {
         }
         self.items = decoded.items
     }
-    
+
     public init(items: [DataItem]) {
         self.items = items
     }
@@ -149,14 +149,14 @@ final public class NeuralNetwork: Codable {
     public var delay = 100
     var inputNeurons: [Neuron] = []
     var testInput: DataPiece?
-    
+
     private enum CodingKeys: String, CodingKey {
         case layers
         case learningRate
         case epochs
         case batchSize
     }
-    
+
     private func generateCheckPoints() -> [CGPoint] {
         return (0..<canvasSize).flatMap { x in
             (0..<canvasSize).map { y in
@@ -164,20 +164,23 @@ final public class NeuralNetwork: Codable {
             }
         }
     }
-    
+
     func generateOutputMaps(input: DataPiece) {
         generateCheckPoints().forEach { point in
             let input = DataPiece(size: .init(width: 2), body: [Float(point.x), Float(point.y)])
-            _ = forward(networkInput: input, savePoint: .init(x: point.x + CGFloat(canvasSize) / 2, y: point.y + CGFloat(canvasSize) / 2))
+            forward(
+                networkInput: input,
+                savePoint: .init(x: point.x + CGFloat(canvasSize) / 2, y: point.y + CGFloat(canvasSize) / 2)
+            )
         }
     }
-    
+
     func showOutputMaps() {
         for i in 0..<layers.count {
             layers[i].showOutputMaps()
         }
     }
-    
+
     public func printSummary() {
         for rawLayer in layers {
             switch rawLayer {
@@ -190,7 +193,7 @@ final public class NeuralNetwork: Codable {
             }
         }
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         let wrappers = layers.map { LayerWrapper($0) }
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -199,7 +202,7 @@ final public class NeuralNetwork: Codable {
         try container.encode(epochs, forKey: .epochs)
         try container.encode(batchSize, forKey: .batchSize)
     }
-    
+
     static func fromFile(fileName: String) -> NeuralNetwork? {
         let decoder = JSONDecoder()
         let url = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(fileName)
@@ -213,11 +216,11 @@ final public class NeuralNetwork: Codable {
         }
         return decoded
     }
-    
+
     public init() {
-        
+
     }
-    
+
     public required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let wrappers = try container.decode([LayerWrapper].self, forKey: .layers)
@@ -226,7 +229,7 @@ final public class NeuralNetwork: Codable {
         self.epochs = try container.decode(Int.self, forKey: .epochs)
         self.batchSize = try container.decode(Int.self, forKey: .batchSize)
     }
-    
+
     public func saveModel(fileName: String) {
         let encoder = JSONEncoder()
         guard let encoded = try? encoder.encode(self) else {
@@ -240,7 +243,7 @@ final public class NeuralNetwork: Codable {
             print("Unable to write model to disk.")
         }
     }
-    
+
     public func train(set: Dataset) -> Float {
         var error = Float.zero
         dropoutEnabled = true
@@ -250,27 +253,19 @@ final public class NeuralNetwork: Codable {
             while !shuffledSet.isEmpty {
                 let batch = shuffledSet.prefix(self.batchSize)
                 for item in batch {
-                    print("Forward")
                     let predictions = self.forward(networkInput: item.input)
                     for i in 0..<item.output.body.count {
                         error += pow(item.output.body[i]-predictions.body[i], 2)/2
                     }
-                    print("Backward")
                     self.backward(expected: item.output)
-                    print("Delta")
                     self.deltaWeights(row: item.input)
                 }
-                print("Update")
-                DispatchQueue.main.sync {
-                    for layer in self.layers {
-                        layer.updateWeights()
-                    }
+                for layer in self.layers {
+                    layer.updateWeights()
                 }
-                shuffledSet.removeFirst(min(self.batchSize,shuffledSet.count))
+                shuffledSet.removeFirst(min(self.batchSize, shuffledSet.count))
                 if let testInput = testInput {
-                    print("Show")
                     generateOutputMaps(input: testInput)
-                    print("Generate")
                     showOutputMaps()
                 }
                 usleep(useconds_t(delay * 1000))
@@ -280,30 +275,28 @@ final public class NeuralNetwork: Codable {
         print(layers.first as? Dense)
         return error
     }
-    
+
     public func predict(input: DataPiece) -> DataPiece {
         dropoutEnabled = false
         return forward(networkInput: input)
     }
-    
+
     public func predictMax(input: DataPiece) -> Int {
         let output = predict(input: input)
         var maxi = 0
-        for i in 1..<output.body.count {
-            if(output.body[i]>output.body[maxi]) {
-                maxi = i
-            }
+        for i in 1..<output.body.count where output.body[i] > output.body[maxi] {
+            maxi = i
         }
         return maxi
     }
-    
+
     private func deltaWeights(row: DataPiece) {
         var input = row
         for i in 0..<layers.count {
             input = layers[i].deltaWeights(input: input, learningRate: learningRate)
         }
     }
-    
+
     private func forward(networkInput: DataPiece, savePoint: CGPoint? = nil) -> DataPiece {
         var input = networkInput
         for i in 0..<layers.count {
@@ -311,10 +304,10 @@ final public class NeuralNetwork: Codable {
         }
         return input
     }
-    
+
     private func backward(expected: DataPiece) {
         var input = expected
-        var previous: Layer? = nil
+        var previous: Layer?
         for i in (0..<layers.count).reversed() {
             input = layers[i].backward(input: input, previous: previous)
             if !(layers[i] is Dropout) {

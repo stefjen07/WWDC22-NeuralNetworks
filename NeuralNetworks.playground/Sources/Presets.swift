@@ -15,14 +15,14 @@ public struct LinearPreset: NNPreset {
     public var neuralNetwork: NeuralNetwork = {
         let network = NeuralNetwork()
         network.layers = [
-            Dense(inputSize: 2, neuronsCount: 5, functionRaw: .reLU),
-            Dense(inputSize: 5, neuronsCount: 5, functionRaw: .reLU),
-            Dense(inputSize: 5, neuronsCount: 1, functionRaw: .reLU)
+            Dense(inputSize: 2, neuronsCount: 4, function: .reLU),
+            Dense(inputSize: 4, neuronsCount: 4, function: .reLU),
+            Dense(inputSize: 4, neuronsCount: 1, function: .reLU)
         ]
         network.learningRate = 0.1
-        network.batchSize = 16
+        network.batchSize = 4
         network.epochs = 200
-        network.delay = 500
+        network.delay = 100
         return network
     }()
     public var dataset: Dataset = Dataset(items: [
@@ -32,10 +32,11 @@ public struct LinearPreset: NNPreset {
         .init(input: [5, 15], inputSize: .init(width: 2), output: [20], outputSize: .init(width: 1)),
         .init(input: [3, 8], inputSize: .init(width: 2), output: [11], outputSize: .init(width: 1)),
         .init(input: [0, 0], inputSize: .init(width: 2), output: [0], outputSize: .init(width: 1)),
+        .init(input: [5, 5], inputSize: .init(width: 2), output: [10], outputSize: .init(width: 1))
     ])
-    
+
     public init() {
-        
+
     }
 }
 
@@ -43,9 +44,9 @@ public struct PrimePreset: NNPreset {
     public var neuralNetwork: NeuralNetwork = {
         let network = NeuralNetwork()
         network.layers = [
-            Dense(inputSize: 4, neuronsCount: 10, functionRaw: .sigmoid),
-            Dense(inputSize: 10, neuronsCount: 10, functionRaw: .sigmoid),
-            Dense(inputSize: 10, neuronsCount: 1, functionRaw: .sigmoid)
+            Dense(inputSize: 4, neuronsCount: 10, function: .sigmoid),
+            Dense(inputSize: 10, neuronsCount: 10, function: .sigmoid),
+            Dense(inputSize: 10, neuronsCount: 1, function: .sigmoid)
         ]
         network.learningRate = 5
         network.batchSize = 5
@@ -59,11 +60,11 @@ public struct PrimePreset: NNPreset {
         .init(input: [0, 0, 1, 0], inputSize: .init(width: 4), output: [1], outputSize: .init(width: 1)),
         .init(input: [0, 0, 0, 1], inputSize: .init(width: 4), output: [1], outputSize: .init(width: 1)),
         .init(input: [1, 1, 1, 1], inputSize: .init(width: 4), output: [0], outputSize: .init(width: 1)),
-        .init(input: [1, 0, 0, 1], inputSize: .init(width: 4), output: [0], outputSize: .init(width: 1)),
+        .init(input: [1, 0, 0, 1], inputSize: .init(width: 4), output: [0], outputSize: .init(width: 1))
     ])
-    
+
     public init() {
-        
+
     }
 }
 
@@ -71,9 +72,9 @@ public struct ParityPreset: NNPreset {
     public var neuralNetwork: NeuralNetwork = {
         let network = NeuralNetwork()
         network.layers = [
-            Dense(inputSize: 4, neuronsCount: 10, functionRaw: .sigmoid),
-            Dense(inputSize: 10, neuronsCount: 10, functionRaw: .sigmoid),
-            Dense(inputSize: 10, neuronsCount: 1, functionRaw: .sigmoid)
+            Dense(inputSize: 4, neuronsCount: 10, function: .sigmoid),
+            Dense(inputSize: 10, neuronsCount: 10, function: .sigmoid),
+            Dense(inputSize: 10, neuronsCount: 1, function: .sigmoid)
         ]
         network.learningRate = 5
         network.batchSize = 5
@@ -81,18 +82,18 @@ public struct ParityPreset: NNPreset {
         network.delay = 100
         return network
     }()
-    
+
     public var dataset: Dataset = Dataset(items: [
         .init(input: [1, 0, 0, 0], inputSize: .init(width: 4), output: [1], outputSize: .init(width: 1)),
         .init(input: [0, 1, 0, 0], inputSize: .init(width: 4), output: [1], outputSize: .init(width: 1)),
         .init(input: [0, 0, 1, 0], inputSize: .init(width: 4), output: [1], outputSize: .init(width: 1)),
         .init(input: [0, 0, 0, 1], inputSize: .init(width: 4), output: [0], outputSize: .init(width: 1)),
         .init(input: [1, 1, 1, 1], inputSize: .init(width: 4), output: [0], outputSize: .init(width: 1)),
-        .init(input: [1, 0, 0, 1], inputSize: .init(width: 4), output: [0], outputSize: .init(width: 1)),
+        .init(input: [1, 0, 0, 1], inputSize: .init(width: 4), output: [0], outputSize: .init(width: 1))
     ])
-    
+
     public init() {
-        
+
     }
 }
 
@@ -100,7 +101,7 @@ public struct CorrectParityPreset: NNPreset {
     public var neuralNetwork: NeuralNetwork = {
         let network = NeuralNetwork()
         network.layers = [
-            Dense(inputSize: 4, neuronsCount: 1, functionRaw: .sigmoid)
+            Dense(inputSize: 4, neuronsCount: 1, function: .sigmoid)
         ]
         network.learningRate = 5
         network.batchSize = 5
@@ -108,18 +109,18 @@ public struct CorrectParityPreset: NNPreset {
         network.delay = 100
         return network
     }()
-    
+
     public var dataset: Dataset = Dataset(items: [
         .init(input: [1, 0, 0, 0], inputSize: .init(width: 4), output: [1], outputSize: .init(width: 1)),
         .init(input: [0, 1, 0, 0], inputSize: .init(width: 4), output: [1], outputSize: .init(width: 1)),
         .init(input: [0, 0, 1, 0], inputSize: .init(width: 4), output: [1], outputSize: .init(width: 1)),
         .init(input: [0, 0, 0, 1], inputSize: .init(width: 4), output: [0], outputSize: .init(width: 1)),
         .init(input: [1, 1, 1, 1], inputSize: .init(width: 4), output: [0], outputSize: .init(width: 1)),
-        .init(input: [1, 0, 0, 1], inputSize: .init(width: 4), output: [0], outputSize: .init(width: 1)),
+        .init(input: [1, 0, 0, 1], inputSize: .init(width: 4), output: [0], outputSize: .init(width: 1))
     ])
-    
+
     public init() {
-        
+
     }
 }
 
@@ -127,9 +128,9 @@ public struct FibonacciPreset: NNPreset {
     public var neuralNetwork: NeuralNetwork = {
         let network = NeuralNetwork()
         network.layers = [
-            Dense(inputSize: 4, neuronsCount: 10, functionRaw: .sigmoid),
-            Dense(inputSize: 10, neuronsCount: 10, functionRaw: .sigmoid),
-            Dense(inputSize: 10, neuronsCount: 1, functionRaw: .sigmoid)
+            Dense(inputSize: 4, neuronsCount: 10, function: .sigmoid),
+            Dense(inputSize: 10, neuronsCount: 10, function: .sigmoid),
+            Dense(inputSize: 10, neuronsCount: 1, function: .sigmoid)
         ]
         network.learningRate = 5
         network.batchSize = 5
@@ -137,7 +138,7 @@ public struct FibonacciPreset: NNPreset {
         network.delay = 100
         return network
     }()
-    
+
     public var dataset: Dataset = Dataset(items: [
         .init(decimal: 1, output: true),
         .init(decimal: 2, output: true),
@@ -152,10 +153,10 @@ public struct FibonacciPreset: NNPreset {
         .init(decimal: 16, output: false),
         .init(decimal: 28, output: false),
         .init(decimal: 45, output: false),
-        .init(decimal: 120, output: false),
+        .init(decimal: 120, output: false)
     ])
-    
+
     public init() {
-        
+
     }
 }

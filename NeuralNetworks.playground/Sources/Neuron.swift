@@ -8,7 +8,7 @@ struct Neuron: Codable {
         case bias
         case biasDelta
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(weights, forKey: .weights)
@@ -16,7 +16,7 @@ struct Neuron: Codable {
         try container.encode(bias, forKey: .bias)
         try container.encode(biasDelta, forKey: .biasDelta)
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         weights = try container.decode([Float].self, forKey: .weights)
@@ -24,21 +24,24 @@ struct Neuron: Codable {
         bias = try container.decode(Float.self, forKey: .bias)
         biasDelta = try container.decode(Float.self, forKey: .biasDelta)
     }
-    
+
     init(weights: [Float], weightsDelta: [Float], bias: Float, biasDelta: Float) {
         self.weights = weights
         self.weightsDelta = weightsDelta
         self.bias = bias
         self.biasDelta = biasDelta
     }
-    
+
     var weights: [Float]
     var weightsDelta: [Float]
     var bias: Float
     var biasDelta: Float
-    var object: SKNode? = nil
-    var imageObject: SKSpriteNode? = nil
-    var texture: SKMutableTexture = SKMutableTexture(size: .init(width: canvasSize, height: canvasSize), pixelFormat: Int32(kCVPixelFormatType_32RGBA))
+    var object: SKNode?
+    var imageObject: SKSpriteNode?
+    var texture: SKMutableTexture = SKMutableTexture(
+        size: .init(width: canvasSize, height: canvasSize),
+        pixelFormat: Int32(kCVPixelFormatType_32RGBA)
+    )
     var synapses: [SKShapeNode] = []
     var position: CGPoint?
 }

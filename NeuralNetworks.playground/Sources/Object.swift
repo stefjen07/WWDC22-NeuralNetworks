@@ -2,16 +2,19 @@ import Foundation
 import SpriteKit
 
 extension NeuralNetwork {
-    
+
     public func generateInputNeurons() {
         inputNeurons = []
         if let layer = layers.first {
             if let neuron = layer.neurons.first {
-                inputNeurons = Array(repeating: Neuron(weights: [], weightsDelta: [], bias: 0, biasDelta: 0), count: neuron.weights.count)
+                inputNeurons = Array(
+                    repeating: Neuron(weights: [], weightsDelta: [], bias: 0, biasDelta: 0),
+                    count: neuron.weights.count
+                )
             }
         }
     }
-    
+
     public func generatePositions() {
         let padding: CGFloat = 10
         let width = trainScene.size.width - padding * 2
@@ -35,7 +38,7 @@ extension NeuralNetwork {
             y += newHeight
         }
     }
-    
+
     public func generateObjects() {
         for j in 0..<inputNeurons.count {
             if let position = inputNeurons[j].position {
@@ -49,25 +52,16 @@ extension NeuralNetwork {
         for i in 0..<layers.count {
             for j in 0..<layers[i].neurons.count {
                 if let position = layers[i].neurons[j].position {
-                    let node = SKShapeNode(circleOfRadius: 20)
-                    node.zPosition = 1
-                    node.position = position
-                    node.fillColor = .black
-                    trainScene.addChild(node)
-                    
-                    let imageNode = SKSpriteNode(color: .black, size: .init(width: 40, height: 40))
+                    let imageNode = SKSpriteNode(texture: layers[i].neurons[j].texture)
                     imageNode.zPosition = 2
-                    imageNode.position = .init(x: 0, y: 0)
-                    imageNode.texture = layers[i].neurons[j].texture
-                    node.addChild(imageNode)
-                    
-                    layers[i].neurons[j].object = node
+                    imageNode.position = position
+                    trainScene.addChild(imageNode)
                     layers[i].neurons[j].imageObject = imageNode
                 }
             }
         }
     }
-    
+
     public func generateSynapses() {
         if let layer = layers.first {
             for j in 0..<inputNeurons.count {
@@ -106,7 +100,7 @@ extension NeuralNetwork {
             }
         }
     }
-    
+
     public func generateScene() {
         trainScene.backgroundColor = .white
         generateInputNeurons()
@@ -114,7 +108,7 @@ extension NeuralNetwork {
         generateObjects()
         generateSynapses()
     }
-    
+
 }
 
 #if os(iOS)
