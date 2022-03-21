@@ -58,6 +58,7 @@ extension NeuralNetwork {
                     let imageNode = SKSpriteNode(color: .black, size: .init(width: 40, height: 40))
                     imageNode.zPosition = 2
                     imageNode.position = .init(x: 0, y: 0)
+                    imageNode.texture = layers[i].neurons[j].texture
                     node.addChild(imageNode)
                     
                     layers[i].neurons[j].object = node

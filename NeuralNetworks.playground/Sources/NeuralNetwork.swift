@@ -167,6 +167,7 @@ final public class NeuralNetwork: Codable {
     
     func generateOutputMaps(input: DataPiece) {
         generateCheckPoints().forEach { point in
+            let input = DataPiece(size: .init(width: 2), body: [Float(point.x), Float(point.y)])
             _ = forward(networkInput: input, savePoint: .init(x: point.x + CGFloat(canvasSize) / 2, y: point.y + CGFloat(canvasSize) / 2))
         }
     }
@@ -249,13 +250,17 @@ final public class NeuralNetwork: Codable {
             while !shuffledSet.isEmpty {
                 let batch = shuffledSet.prefix(self.batchSize)
                 for item in batch {
+                    print("Forward")
                     let predictions = self.forward(networkInput: item.input)
                     for i in 0..<item.output.body.count {
                         error += pow(item.output.body[i]-predictions.body[i], 2)/2
                     }
+                    print("Backward")
                     self.backward(expected: item.output)
+                    print("Delta")
                     self.deltaWeights(row: item.input)
                 }
+                print("Update")
                 DispatchQueue.main.sync {
                     for layer in self.layers {
                         layer.updateWeights()
@@ -263,7 +268,9 @@ final public class NeuralNetwork: Codable {
                 }
                 shuffledSet.removeFirst(min(self.batchSize,shuffledSet.count))
                 if let testInput = testInput {
+                    print("Show")
                     generateOutputMaps(input: testInput)
+                    print("Generate")
                     showOutputMaps()
                 }
                 usleep(useconds_t(delay * 1000))
@@ -315,47 +322,6 @@ final public class NeuralNetwork: Codable {
             }
         }
     }
-}
-
-struct Neuron: Codable {
-    public enum CodingKeys: String, CodingKey {
-        case weights
-        case weightsDelta
-        case bias
-        case biasDelta
-    }
-    
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(weights, forKey: .weights)
-        try container.encode(weightsDelta, forKey: .weightsDelta)
-        try container.encode(bias, forKey: .bias)
-        try container.encode(biasDelta, forKey: .biasDelta)
-    }
-    
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        weights = try container.decode([Float].self, forKey: .weights)
-        weightsDelta = try container.decode([Float].self, forKey: .weightsDelta)
-        bias = try container.decode(Float.self, forKey: .bias)
-        biasDelta = try container.decode(Float.self, forKey: .biasDelta)
-    }
-    
-    init(weights: [Float], weightsDelta: [Float], bias: Float, biasDelta: Float) {
-        self.weights = weights
-        self.weightsDelta = weightsDelta
-        self.bias = bias
-        self.biasDelta = biasDelta
-    }
-    
-    var weights: [Float]
-    var weightsDelta: [Float]
-    var bias: Float
-    var biasDelta: Float
-    var object: SKNode? = nil
-    var imageObject: SKSpriteNode? = nil
-    var synapses: [SKShapeNode] = []
-    var position: CGPoint?
 }
 
 public func classifierOutput(classes: Int, correct: Int) -> DataPiece {

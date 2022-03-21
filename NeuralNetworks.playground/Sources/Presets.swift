@@ -11,29 +11,27 @@ extension NNPreset {
     }
 }
 
-//Tic-Tac-Toe preset
-
-public struct TicTacToePreset: NNPreset {
+public struct LinearPreset: NNPreset {
     public var neuralNetwork: NeuralNetwork = {
         let network = NeuralNetwork()
         network.layers = [
-            Dense(inputSize: 4, neuronsCount: 10, functionRaw: .sigmoid),
-            Dense(inputSize: 10, neuronsCount: 10, functionRaw: .sigmoid),
-            Dense(inputSize: 10, neuronsCount: 1, functionRaw: .sigmoid)
+            Dense(inputSize: 2, neuronsCount: 5, functionRaw: .reLU),
+            Dense(inputSize: 5, neuronsCount: 5, functionRaw: .reLU),
+            Dense(inputSize: 5, neuronsCount: 1, functionRaw: .reLU)
         ]
-        network.learningRate = 5
-        network.batchSize = 5
+        network.learningRate = 0.1
+        network.batchSize = 16
         network.epochs = 200
-        network.delay = 100
+        network.delay = 500
         return network
     }()
     public var dataset: Dataset = Dataset(items: [
-        .init(input: [1, 0, 0, 0], inputSize: .init(width: 9), output: [0], outputSize: .init(width: 1)),
-        .init(input: [0, 1, 0, 0], inputSize: .init(width: 9), output: [0], outputSize: .init(width: 1)),
-        .init(input: [0, 0, 1, 0], inputSize: .init(width: 9), output: [1], outputSize: .init(width: 1)),
-        .init(input: [0, 0, 0, 1], inputSize: .init(width: 9), output: [1], outputSize: .init(width: 1)),
-        .init(input: [1, 1, 1, 1], inputSize: .init(width: 9), output: [0], outputSize: .init(width: 1)),
-        .init(input: [1, 0, 0, 1], inputSize: .init(width: 9), output: [0], outputSize: .init(width: 1)),
+        .init(input: [1, 0], inputSize: .init(width: 2), output: [1], outputSize: .init(width: 1)),
+        .init(input: [2, 3], inputSize: .init(width: 2), output: [5], outputSize: .init(width: 1)),
+        .init(input: [10, 0], inputSize: .init(width: 2), output: [10], outputSize: .init(width: 1)),
+        .init(input: [5, 15], inputSize: .init(width: 2), output: [20], outputSize: .init(width: 1)),
+        .init(input: [3, 8], inputSize: .init(width: 2), output: [11], outputSize: .init(width: 1)),
+        .init(input: [0, 0], inputSize: .init(width: 2), output: [0], outputSize: .init(width: 1)),
     ])
     
     public init() {

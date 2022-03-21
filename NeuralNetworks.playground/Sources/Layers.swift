@@ -90,69 +90,24 @@ public class Layer: Codable {
     struct RGBA32: Equatable {
         var color: UInt32
 
-        var redComponent: UInt8 {
-            return UInt8((color >> 24) & 255)
-        }
-
-        var greenComponent: UInt8 {
-            return UInt8((color >> 16) & 255)
-        }
-
-        var blueComponent: UInt8 {
-            return UInt8((color >> 8) & 255)
-        }
-
-        var alphaComponent: UInt8 {
-            return UInt8((color >> 0) & 255)
-        }
-
         init(red: UInt8, green: UInt8, blue: UInt8, alpha: UInt8) {
             color = (UInt32(red) << 24) | (UInt32(green) << 16) | (UInt32(blue) << 8) | (UInt32(alpha) << 0)
         }
-
-        static let bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
-
-        static func ==(lhs: RGBA32, rhs: RGBA32) -> Bool {
-            return lhs.color == rhs.color
-        }
     }
     
-    func getOutputImage(for neuron: Int, completionHandler: @escaping (CGImage?) -> Void) {
-        DispatchQueue.global(qos: .utility).async {
-            let colorSpace = CGColorSpaceCreateDeviceRGB()
-            let bytesPerPixel = 4
-            let bitsPerComponent = 8
-            let bytesPerRow = bytesPerPixel * canvasSize
-            let bitmapInfo = RGBA32.bitmapInfo
-
-            guard
-                let context = CGContext(data: nil, width: canvasSize, height: canvasSize, bitsPerComponent: bitsPerComponent, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: bitmapInfo),
-                let buffer = context.data
-            else {
-                completionHandler(nil)
-                return
-            }
-
-            let pixelBuffer = buffer.bindMemory(to: UInt32.self, capacity: canvasSize * canvasSize)
+    func modifyTexture(_ texture: SKMutableTexture, neuronIndex: Int) {
+        texture.modifyPixelData { ptr, length in
+            let pixelBuffer = ptr?.bindMemory(to: UInt32.self, capacity: canvasSize * canvasSize)
             for (index, value) in self.outputMap.reduce([], +).enumerated() {
-                let value = tanh(value[neuron]) * 255
-                pixelBuffer[index] = RGBA32(red: UInt8(value), green: 0, blue: UInt8(255 - value), alpha: 255).color//RGBA32(red: UInt8(value[neuron]), green: 0, blue: UInt8(1.0 - value[neuron]), alpha: 1)
+                let value = tanh(value[neuronIndex]) * 255
+                pixelBuffer?[index] = RGBA32(red: UInt8(max(0,min(255, value))), green: 0, blue: UInt8(max(0,min(255, 255 - value))), alpha: 255).color
             }
-            
-            let cgImage = context.makeImage()!
-            completionHandler(cgImage)
         }
     }
     
     func showOutputMaps() {
         neurons.indices.forEach { neuronIndex in
-            getOutputImage(for: neuronIndex) { image in
-                guard let image = image, let imageObject = self.neurons[neuronIndex].imageObject else {
-                    return
-                }
-                
-                imageObject.texture = SKTexture(cgImage: image)
-            }
+            modifyTexture(self.neurons[neuronIndex].texture, neuronIndex: neuronIndex)
         }
     }
     
@@ -228,7 +183,7 @@ public class Dense: Layer {
             //print(savePoint)
             outputMap[Int(savePoint.x)][Int(savePoint.y)] = output.body
         }
-        return output!
+        return output ?? input
     }
     
     override func backward(input: DataPiece, previous: Layer?) -> DataPiece {
@@ -247,7 +202,7 @@ public class Dense: Layer {
         for j in 0..<neurons.count {
             neurons[j].biasDelta = errors[j] * function.derivative(output: output!.body[j])
         }
-        return output!
+        return output ?? input
     }
     
     override func deltaWeights(input: DataPiece, learningRate: Float) -> DataPiece {
@@ -263,7 +218,7 @@ public class Dense: Layer {
                 })
             }
         }
-        return output!
+        return output ?? input
     }
     
     override func updateWeights() {
@@ -343,15 +298,15 @@ public class Dropout: Layer {
                 }
             }
         }
-        return output!
+        return output ?? input
     }
     
     override func backward(input: DataPiece, previous: Layer?) -> DataPiece {
-        return output!
+        return output ?? input
     }
     
     override func deltaWeights(input: DataPiece, learningRate: Float) -> DataPiece {
-        return output!
+        return output ?? input
     }
 }
 
