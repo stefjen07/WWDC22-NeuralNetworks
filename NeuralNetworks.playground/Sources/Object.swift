@@ -16,7 +16,7 @@ extension NeuralNetwork {
     }
 
     public func generatePositions() {
-        let padding: CGFloat = 10
+        let padding: CGFloat = 20
         let width = trainScene.size.width - padding * 2
         let height = trainScene.size.height - padding * 2
         let newHeight = height / CGFloat(layers.count + 1 - 1) // + 1 because of input neurons layer

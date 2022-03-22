@@ -7,15 +7,24 @@
 
 import Foundation
 
+extension Float {
+    func tanh() -> Float {
+        return Darwin.tanh(self)
+    }
+}
+
 public enum ActivationFunction: Int, Codable {
     case sigmoid = 0
+    case tanh
     case reLU
     case plain
 
-    func activation(input: Float) -> Float {
+    func transfer(input: Float) -> Float {
         switch self {
         case .sigmoid:
             return 1.0/(1.0+exp(-input))
+        case .tanh:
+            return input.tanh()
         case .reLU:
             return max(Float.zero, input)
         case .plain:
@@ -27,8 +36,10 @@ public enum ActivationFunction: Int, Codable {
         switch self {
         case .sigmoid:
             return output * (1.0-output)
+        case .tanh:
+            return 1 - pow(output.tanh(), 2)
         case .reLU:
-            return output <= 0 ? 0 : 1
+            return output < 0 ? 0 : 1
         case .plain:
             return 1
         }

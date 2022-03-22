@@ -180,11 +180,9 @@ public class Dense: Layer {
             count: neuronsCount
         )
         for i in 0..<neuronsCount {
-            var weights = [Float]()
-            for _ in 0..<inputSize {
-                weights.append(Float.random(in: -1.0 ... 1.0))
+            neurons[i].weights = (0..<inputSize).map { _ in
+                Float.random(in: -1.0 ... 1.0)
             }
-            neurons[i].weights = weights
             // neurons[i].weights = Array(repeating: Float.zero, count: inputSize)
         }
     }
@@ -204,7 +202,7 @@ public class Dense: Layer {
                                 out += weightsPtr[i] * inputPtr[i]
                             })
                         }
-                        outputPtr[i] = function.activation(input: out)
+                        outputPtr[i] = function.transfer(input: out)
                     })
                 }
             }
@@ -220,13 +218,12 @@ public class Dense: Layer {
         if let previous = previous {
             for j in 0..<neurons.count {
                 for neuron in previous.neurons {
-                    errors[j] += neuron.weights[j]*neuron.biasDelta
+                    errors[j] += neuron.weights[j] * neuron.biasDelta
                 }
             }
         } else {
             for j in 0..<neurons.count {
-                errors[j] = input.body[j] - output!.body[j]
-                // errors[j] = output!.body[j] - input.body[j]
+                errors[j] = output!.body[j] - input.body[j]
             }
         }
         for j in 0..<neurons.count {
@@ -241,9 +238,9 @@ public class Dense: Layer {
                 DispatchQueue.concurrentPerform(iterations: neuronsPtr.count, execute: { i in
                     neuronsPtr[i].weightsDelta.withUnsafeMutableBufferPointer { deltaPtr in
                         DispatchQueue.concurrentPerform(iterations: deltaPtr.count, execute: { j in
-                            deltaPtr[j] += learningRate * neuronsPtr[i].biasDelta * inputPtr[j]
+                            deltaPtr[j] -= learningRate * neuronsPtr[i].biasDelta * inputPtr[j]
                         })
-                        neuronsPtr[i].bias += learningRate * neuronsPtr[i].biasDelta
+                        neuronsPtr[i].bias -= learningRate * neuronsPtr[i].biasDelta
                     }
                 })
             }
@@ -260,6 +257,7 @@ public class Dense: Layer {
                         let weightsCount = weightsPtr.count
                         DispatchQueue.concurrentPerform(iterations: weightsCount, execute: { j in
                             weightsPtr[j] += deltaPtr[j]
+//                            print(deltaPtr[j])
                             deltaPtr[j] = 0
                         })
                     }

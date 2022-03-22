@@ -90,9 +90,9 @@ public struct DataItem: Codable {
         self.output = DataPiece(size: outputSize, body: output)
     }
 
-    public init(input: [Float], output: [Float]) {
-        self.input = DataPiece(size: .init(width: input.count), body: input)
-        self.output = DataPiece(size: .init(width: output.count), body: output)
+    public init(flatInput: [Float], flatOutput: [Float]) {
+        self.input = DataPiece(size: .init(width: flatInput.count), body: flatInput)
+        self.output = DataPiece(size: .init(width: flatOutput.count), body: flatOutput)
     }
 
     public init(decimal: Int, output: Bool) {
@@ -140,21 +140,24 @@ public struct Dataset: Codable {
 }
 
 final public class NeuralNetwork: Codable {
-    public var layers: [Layer] = []
-    public var learningRate = Float(0.05)
-    public var epochs = 30
-    public var batchSize = 16
+    public var layers: [Layer]
+    public var lossFunction: LossFunction
+    public var learningRate: Float
+    public var epochs: Int
+    public var batchSize: Int
     var dropoutEnabled = true
     public var trainScene = SKScene(size: .init(width: 400, height: 800))
-    public var delay = 100
+    public var delay: Int
     var inputNeurons: [Neuron] = []
     var testInput: DataPiece?
 
     private enum CodingKeys: String, CodingKey {
         case layers
+        case lossFunction
         case learningRate
         case epochs
         case batchSize
+        case delay
     }
     
     private func generateCheckPoints() -> [CGPoint] {
@@ -216,9 +219,14 @@ final public class NeuralNetwork: Codable {
         }
         return decoded
     }
-
-    public init() {
-
+    
+    public init(layers: [Layer], lossFunction: LossFunction, learningRate: Float, epochs: Int, batchSize: Int, delay: Int) {
+        self.layers = layers
+        self.lossFunction = lossFunction
+        self.learningRate = learningRate
+        self.epochs = epochs
+        self.batchSize = batchSize
+        self.delay = delay
     }
 
     public required init(from decoder: Decoder) throws {
@@ -228,6 +236,8 @@ final public class NeuralNetwork: Codable {
         self.learningRate = try container.decode(Float.self, forKey: .learningRate)
         self.epochs = try container.decode(Int.self, forKey: .epochs)
         self.batchSize = try container.decode(Int.self, forKey: .batchSize)
+        self.delay = try container.decode(Int.self, forKey: .delay)
+        self.lossFunction = try container.decode(LossFunction.self, forKey: .lossFunction)
     }
 
     public func saveModel(fileName: String) {
@@ -245,17 +255,19 @@ final public class NeuralNetwork: Codable {
     }
 
     public func train(set: Dataset) -> Float {
-        var error = Float.zero
+        var error = Float.zero, outputSize = Int.zero
         dropoutEnabled = true
         for epoch in 0..<epochs {
             var shuffledSet = set.items.shuffled()
-            error = Float.zero
+            error = 0
+            outputSize = 0
             while !shuffledSet.isEmpty {
                 let batch = shuffledSet.prefix(self.batchSize)
                 for item in batch {
                     let predictions = self.forward(networkInput: item.input)
                     for i in 0..<item.output.body.count {
-                        error += pow(item.output.body[i]-predictions.body[i], 2)/2
+                        error += lossFunction.loss(prediction: predictions.body[i], expectation: item.output.body[i])
+                        outputSize += 1
                     }
                     self.backward(expected: item.output)
                     self.deltaWeights(row: item.input)
@@ -270,6 +282,7 @@ final public class NeuralNetwork: Codable {
                 }
                 usleep(useconds_t(delay * 1000))
             }
+            error = lossFunction.cost(sum: error, outputSize: outputSize)
             print("Epoch \(epoch+1), error \(error).")
         }
         print(layers.first as? Dense)
@@ -307,7 +320,7 @@ final public class NeuralNetwork: Codable {
 
     private func backward(expected: DataPiece) {
         var input = expected
-        var previous: Layer?
+        var previous: Layer? = nil
         for i in (0..<layers.count).reversed() {
             input = layers[i].backward(input: input, previous: previous)
             if !(layers[i] is Dropout) {
