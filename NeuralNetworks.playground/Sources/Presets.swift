@@ -15,9 +15,8 @@ public struct LinearPreset: NNPreset {
     public var neuralNetwork: NeuralNetwork = {
         let network = NeuralNetwork()
         network.layers = [
-            Dense(inputSize: 2, neuronsCount: 4, function: .reLU),
-            Dense(inputSize: 4, neuronsCount: 4, function: .reLU),
-            Dense(inputSize: 4, neuronsCount: 1, function: .reLU)
+            Dense(inputSize: 2, neuronsCount: 2, function: .reLU),
+            Dense(inputSize: 2, neuronsCount: 1, function: .reLU)
         ]
         network.learningRate = 0.1
         network.batchSize = 4

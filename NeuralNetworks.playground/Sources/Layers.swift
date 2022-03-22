@@ -1,7 +1,8 @@
 import Foundation
 import SpriteKit
 
-let canvasSize = 20
+let canvasSize = CGSize(width: 20, height: 20)
+let startPoint = CGPoint(x: 0, y: 0)
 
 public struct LayerWrapper: Codable {
     let layer: Layer
@@ -87,9 +88,9 @@ public class Layer: Codable {
                     repeating: 0,
                     count: neurons.count
                 ),
-                count: canvasSize
+                count: Int(canvasSize.width)
             ),
-            count: canvasSize
+            count: Int(canvasSize.height)
         )
         output = try container.decode(DataPiece.self, forKey: .output)
     }
@@ -158,9 +159,9 @@ public class Layer: Codable {
                     repeating: 0,
                     count: neuronsCount
                 ),
-                count: canvasSize
+                count: Int(canvasSize.width)
             ),
-            count: canvasSize
+            count: Int(canvasSize.height)
         )
     }
 }

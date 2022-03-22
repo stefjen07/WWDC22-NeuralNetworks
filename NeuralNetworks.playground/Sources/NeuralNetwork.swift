@@ -156,11 +156,11 @@ final public class NeuralNetwork: Codable {
         case epochs
         case batchSize
     }
-
+    
     private func generateCheckPoints() -> [CGPoint] {
-        return (0..<canvasSize).flatMap { x in
-            (0..<canvasSize).map { y in
-                return CGPoint(x: x - canvasSize / 2, y: y - canvasSize / 2)
+        return (0..<Int(canvasSize.height)).flatMap { x in
+            (0..<Int(canvasSize.width)).map { y in
+                return CGPoint(x: CGFloat(x) + startPoint.x, y: CGFloat(y) + startPoint.y)
             }
         }
     }
@@ -170,7 +170,7 @@ final public class NeuralNetwork: Codable {
             let input = DataPiece(size: .init(width: 2), body: [Float(point.x), Float(point.y)])
             forward(
                 networkInput: input,
-                savePoint: .init(x: point.x + CGFloat(canvasSize) / 2, y: point.y + CGFloat(canvasSize) / 2)
+                savePoint: .init(x: point.x - startPoint.x, y: point.y - startPoint.y)
             )
         }
     }

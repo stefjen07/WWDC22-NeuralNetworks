@@ -39,7 +39,7 @@ struct Neuron: Codable {
     var object: SKNode?
     var imageObject: SKSpriteNode?
     var texture: SKMutableTexture = SKMutableTexture(
-        size: .init(width: canvasSize, height: canvasSize),
+        size: canvasSize,
         pixelFormat: Int32(kCVPixelFormatType_32RGBA)
     )
     var synapses: [SKShapeNode] = []
