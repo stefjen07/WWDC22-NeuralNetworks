@@ -8,11 +8,9 @@ public class NNView: SKView {
         let camera = SKCameraNode()
         camera.zPosition = 100
 
-        preset.neuralNetwork.trainScene.size = self.frame.size
+        preset.neuralNetwork.trainScene.size = .init(width: frame.size.width * 0.25, height: frame.size.height * 0.25)
         preset.neuralNetwork.trainScene.addChild(camera)
         preset.neuralNetwork.trainScene.camera = camera
-
-        preset.neuralNetwork.testInput = preset.dataset.items.first?.input
 
         self.presentScene(preset.neuralNetwork.trainScene)
     }

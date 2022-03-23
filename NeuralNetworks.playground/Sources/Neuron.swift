@@ -36,7 +36,6 @@ struct Neuron: Codable {
     var weightsDelta: [Float]
     var bias: Float
     var biasDelta: Float
-    var object: SKNode?
     var imageObject: SKSpriteNode?
     var texture: SKMutableTexture = SKMutableTexture(
         size: canvasSize,

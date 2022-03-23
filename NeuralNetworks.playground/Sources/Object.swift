@@ -2,19 +2,6 @@ import Foundation
 import SpriteKit
 
 extension NeuralNetwork {
-
-    public func generateInputNeurons() {
-        inputNeurons = []
-        if let layer = layers.first {
-            if let neuron = layer.neurons.first {
-                inputNeurons = Array(
-                    repeating: Neuron(weights: [], weightsDelta: [], bias: 0, biasDelta: 0),
-                    count: neuron.weights.count
-                )
-            }
-        }
-    }
-
     public func generatePositions() {
         let padding: CGFloat = 20
         let width = trainScene.size.width - padding * 2
@@ -42,11 +29,11 @@ extension NeuralNetwork {
     public func generateObjects() {
         for j in 0..<inputNeurons.count {
             if let position = inputNeurons[j].position {
-                let node = SKShapeNode(circleOfRadius: 1)
+                let node = SKSpriteNode(texture: inputNeurons[j].texture)
+                node.zPosition = 2
                 node.position = position
-                node.fillColor = .black
                 trainScene.addChild(node)
-                inputNeurons[j].object = node
+                inputNeurons[j].imageObject = node
             }
         }
         for i in 0..<layers.count {
@@ -103,9 +90,9 @@ extension NeuralNetwork {
 
     public func generateScene() {
         trainScene.backgroundColor = .white
-        generateInputNeurons()
         generatePositions()
         generateObjects()
+        generateInputMaps()
         generateSynapses()
     }
 

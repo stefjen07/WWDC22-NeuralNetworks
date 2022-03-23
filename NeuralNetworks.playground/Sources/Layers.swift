@@ -4,6 +4,21 @@ import SpriteKit
 let canvasSize = CGSize(width: 20, height: 20)
 let startPoint = CGPoint(x: 0, y: 0)
 
+struct RGBA {
+    var red: UInt8
+    var green: UInt8
+    var blue: UInt8
+    var alpha: UInt8
+
+    init(red: UInt8, green: UInt8, blue: UInt8, alpha: UInt8) {
+        let alphaScale = Float(alpha) / Float(UInt8.max)
+        self.red = red.scaled(by: alphaScale)
+        self.blue = blue.scaled(by: alphaScale)
+        self.green = green.scaled(by: alphaScale)
+        self.alpha = alpha
+    }
+}
+
 public struct LayerWrapper: Codable {
     let layer: Layer
 
@@ -95,21 +110,6 @@ public class Layer: Codable {
         output = try container.decode(DataPiece.self, forKey: .output)
     }
 
-    struct RGBA {
-        var red: UInt8
-        var green: UInt8
-        var blue: UInt8
-        var alpha: UInt8
-
-        init(red: UInt8, green: UInt8, blue: UInt8, alpha: UInt8) {
-            let alphaScale = Float(alpha) / Float(UInt8.max)
-            self.red = red.scaled(by: alphaScale)
-            self.blue = blue.scaled(by: alphaScale)
-            self.green = green.scaled(by: alphaScale)
-            self.alpha = alpha
-        }
-    }
-
     func modifyTexture(_ texture: SKMutableTexture, neuronIndex: Int) {
         DispatchQueue.main.async {
             texture.modifyPixelData { ptr, length in
@@ -170,20 +170,15 @@ public class Dense: Layer {
     public init(inputSize: Int, neuronsCount: Int, function: ActivationFunction) {
         super.init(function: function, neuronsCount: neuronsCount)
         output = .init(size: .init(width: neuronsCount), body: Array(repeating: Float.zero, count: neuronsCount))
-        self.neurons = Array(
-            repeating: Neuron(
-                weights: [],
+        self.neurons = (0..<neuronsCount).map { _ in
+            return Neuron(
+                weights: (0..<inputSize).map { _ in
+                    Float.random(in: -10.0 ... 10.0)
+                },
                 weightsDelta: .init(repeating: Float.zero, count: inputSize),
                 bias: 0.0,
                 biasDelta: 0.0
-            ),
-            count: neuronsCount
-        )
-        for i in 0..<neuronsCount {
-            neurons[i].weights = (0..<inputSize).map { _ in
-                Float.random(in: -1.0 ... 1.0)
-            }
-            // neurons[i].weights = Array(repeating: Float.zero, count: inputSize)
+            )
         }
     }
 

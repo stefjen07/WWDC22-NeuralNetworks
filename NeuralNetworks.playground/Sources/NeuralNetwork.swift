@@ -149,10 +149,10 @@ final public class NeuralNetwork: Codable {
     public var trainScene = SKScene(size: .init(width: 400, height: 800))
     public var delay: Int
     var inputNeurons: [Neuron] = []
-    var testInput: DataPiece?
 
     private enum CodingKeys: String, CodingKey {
         case layers
+        case inputNeurons
         case lossFunction
         case learningRate
         case epochs
@@ -160,16 +160,56 @@ final public class NeuralNetwork: Codable {
         case delay
     }
     
-    private func generateCheckPoints() -> [CGPoint] {
+    var pointsToCheck: [CGPoint] {
         return (0..<Int(canvasSize.height)).flatMap { x in
             (0..<Int(canvasSize.width)).map { y in
                 return CGPoint(x: CGFloat(x) + startPoint.x, y: CGFloat(y) + startPoint.y)
             }
         }
     }
+    
+    func inputForPoint(_ point: CGPoint, neuronIndex: Int) -> CGFloat {
+        switch neuronIndex {
+        case 0:
+            return point.y
+        case 1:
+            return point.x
+        default:
+            return 0
+        }
+    }
+    
+    func normalMap(neuronIndex: Int) -> [CGFloat] {
+        let inputs = pointsToCheck.map {
+            return inputForPoint($0, neuronIndex: neuronIndex)
+        }
+        let maxValue = inputs.max() ?? 1, minValue = inputs.min() ?? 0
+        return inputs.map {
+            ($0 - minValue) / (maxValue - minValue)
+        }
+    }
+    
+    func generateInputMaps() {
+        (0..<inputNeurons.count).forEach { neuronIndex in
+            inputNeurons[neuronIndex].texture.modifyPixelData { ptr, length in
+                let pixelPtr = ptr?.assumingMemoryBound(to: RGBA.self)
+                let pixelCount = Int(length / MemoryLayout<RGBA>.stride)
+                let pixelBuffer = UnsafeMutableBufferPointer(start: pixelPtr, count: pixelCount)
+                for (index, value) in self.normalMap(neuronIndex: neuronIndex).enumerated() {
+                    let value = tanh(value) * 255
+                    pixelBuffer[index] = RGBA(
+                        red: UInt8(max(0, min(255, value))),
+                        green: 0,
+                        blue: UInt8(max(0, min(255, 255 - value))),
+                        alpha: 255
+                    )
+                }
+            }
+        }
+    }
 
-    func generateOutputMaps(input: DataPiece) {
-        generateCheckPoints().forEach { point in
+    func generateOutputMaps() {
+        pointsToCheck.forEach { point in
             let input = DataPiece(size: .init(width: 2), body: [Float(point.x), Float(point.y)])
             forward(
                 networkInput: input,
@@ -197,15 +237,6 @@ final public class NeuralNetwork: Codable {
         }
     }
 
-    public func encode(to encoder: Encoder) throws {
-        let wrappers = layers.map { LayerWrapper($0) }
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(wrappers, forKey: .layers)
-        try container.encode(learningRate, forKey: .learningRate)
-        try container.encode(epochs, forKey: .epochs)
-        try container.encode(batchSize, forKey: .batchSize)
-    }
-
     static func fromFile(fileName: String) -> NeuralNetwork? {
         let decoder = JSONDecoder()
         let url = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(fileName)
@@ -222,6 +253,11 @@ final public class NeuralNetwork: Codable {
     
     public init(layers: [Layer], lossFunction: LossFunction, learningRate: Float, epochs: Int, batchSize: Int, delay: Int) {
         self.layers = layers
+        if let layer = layers.first, let neuron = layer.neurons.first  {
+            self.inputNeurons = (0..<neuron.weights.count).map { _ in
+                Neuron(weights: [], weightsDelta: [], bias: 0, biasDelta: 0)
+            }
+        }
         self.lossFunction = lossFunction
         self.learningRate = learningRate
         self.epochs = epochs
@@ -229,10 +265,23 @@ final public class NeuralNetwork: Codable {
         self.delay = delay
     }
 
+    public func encode(to encoder: Encoder) throws {
+        let wrappers = layers.map { LayerWrapper($0) }
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(wrappers, forKey: .layers)
+        try container.encode(inputNeurons, forKey: .inputNeurons)
+        try container.encode(learningRate, forKey: .learningRate)
+        try container.encode(epochs, forKey: .epochs)
+        try container.encode(batchSize, forKey: .batchSize)
+        try container.encode(delay, forKey: .delay)
+        try container.encode(lossFunction, forKey: .lossFunction)
+    }
+    
     public required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let wrappers = try container.decode([LayerWrapper].self, forKey: .layers)
         self.layers = wrappers.map { $0.layer }
+        self.inputNeurons = try container.decode([Neuron].self, forKey: .inputNeurons)
         self.learningRate = try container.decode(Float.self, forKey: .learningRate)
         self.epochs = try container.decode(Int.self, forKey: .epochs)
         self.batchSize = try container.decode(Int.self, forKey: .batchSize)
@@ -276,10 +325,8 @@ final public class NeuralNetwork: Codable {
                     layer.updateWeights()
                 }
                 shuffledSet.removeFirst(min(self.batchSize, shuffledSet.count))
-                if let testInput = testInput {
-                    generateOutputMaps(input: testInput)
-                    showOutputMaps()
-                }
+                generateOutputMaps()
+                showOutputMaps()
                 usleep(useconds_t(delay * 1000))
             }
             error = lossFunction.cost(sum: error, outputSize: outputSize)
