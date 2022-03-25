@@ -133,9 +133,37 @@ public struct Dataset: Codable {
         }
         self.items = decoded.items
     }
+    
+    public init(predicator: (CGPoint) -> Float, inputs: [InputType]) {
+        items = (0..<50).map { _ in
+            let x = Int.random(in: 0..<20), y = Int.random(in: 0..<20)
+            let point = CGPoint(x: x, y: y)
+            return .init(flatInput: inputs.map { $0.inputForPoint(point) }, flatOutput: [predicator(point)])
+        }
+    }
 
     public init(items: [DataItem]) {
         self.items = items
+    }
+}
+
+public enum InputType: Int, Codable {
+    case x
+    case y
+    case x2
+    case y2
+    
+    func inputForPoint(_ point: CGPoint) -> Float {
+        switch self {
+        case .x:
+            return Float(point.x)
+        case .y:
+            return Float(point.y)
+        case .x2:
+            return Float(pow(point.x, 2))
+        case .y2:
+            return Float(pow(point.y, 2))
+        }
     }
 }
 
@@ -149,8 +177,10 @@ final public class NeuralNetwork: Codable {
     public var trainScene = SKScene(size: .init(width: 400, height: 800))
     public var delay: Int
     var inputNeurons: [Neuron] = []
+    var inputs: [InputType]
 
     private enum CodingKeys: String, CodingKey {
+        case inputs
         case layers
         case inputNeurons
         case lossFunction
@@ -168,20 +198,13 @@ final public class NeuralNetwork: Codable {
         }
     }
     
-    func inputForPoint(_ point: CGPoint, neuronIndex: Int) -> CGFloat {
-        switch neuronIndex {
-        case 0:
-            return point.y
-        case 1:
-            return point.x
-        default:
-            return 0
-        }
+    func inputForPoint(_ point: CGPoint, neuronIndex: Int) -> Float {
+        return inputs[neuronIndex].inputForPoint(point)
     }
     
     func normalMap(neuronIndex: Int) -> [CGFloat] {
         let inputs = pointsToCheck.map {
-            return inputForPoint($0, neuronIndex: neuronIndex)
+            return CGFloat(inputForPoint($0, neuronIndex: neuronIndex))
         }
         let maxValue = inputs.max() ?? 1, minValue = inputs.min() ?? 0
         return inputs.map {
@@ -210,7 +233,7 @@ final public class NeuralNetwork: Codable {
 
     func generateOutputMaps() {
         pointsToCheck.forEach { point in
-            let input = DataPiece(size: .init(width: 2), body: [Float(point.x), Float(point.y)])
+            let input = DataPiece(size: .init(width: inputs.count), body: inputs.map { $0.inputForPoint(point) })
             forward(
                 networkInput: input,
                 savePoint: .init(x: point.x - startPoint.x, y: point.y - startPoint.y)
@@ -251,13 +274,12 @@ final public class NeuralNetwork: Codable {
         return decoded
     }
     
-    public init(layers: [Layer], lossFunction: LossFunction, learningRate: Float, epochs: Int, batchSize: Int, delay: Int) {
-        self.layers = layers
-        if let layer = layers.first, let neuron = layer.neurons.first  {
-            self.inputNeurons = (0..<neuron.weights.count).map { _ in
-                Neuron(weights: [], weightsDelta: [], bias: 0, biasDelta: 0)
-            }
+    public init(inputs: [InputType], layers: [Layer], lossFunction: LossFunction, learningRate: Float, epochs: Int, batchSize: Int, delay: Int) {
+        self.inputs = inputs
+        self.inputNeurons = (0..<inputs.count).map { _ in
+            Neuron(weights: [], weightsDelta: [], bias: 0, biasDelta: 0)
         }
+        self.layers = layers
         self.lossFunction = lossFunction
         self.learningRate = learningRate
         self.epochs = epochs
@@ -279,6 +301,7 @@ final public class NeuralNetwork: Codable {
     
     public required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.inputs = try container.decode([InputType].self, forKey: .inputs)
         let wrappers = try container.decode([LayerWrapper].self, forKey: .layers)
         self.layers = wrappers.map { $0.layer }
         self.inputNeurons = try container.decode([Neuron].self, forKey: .inputNeurons)
