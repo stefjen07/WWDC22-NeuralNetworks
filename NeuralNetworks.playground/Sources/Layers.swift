@@ -1,8 +1,7 @@
 import Foundation
 import SpriteKit
 
-let canvasSize = CGSize(width: 20, height: 20)
-let startPoint = CGPoint(x: 0, y: 0)
+let canvasRect = CGRect(x: -10, y: -10, width: 20, height: 20)
 
 struct RGBA {
     var red: UInt8
@@ -103,9 +102,9 @@ public class Layer: Codable {
                     repeating: 0,
                     count: neurons.count
                 ),
-                count: Int(canvasSize.width)
+                count: Int(canvasRect.width)
             ),
-            count: Int(canvasSize.height)
+            count: Int(canvasRect.height)
         )
         output = try container.decode(DataPiece.self, forKey: .output)
     }
@@ -159,9 +158,9 @@ public class Layer: Codable {
                     repeating: 0,
                     count: neuronsCount
                 ),
-                count: Int(canvasSize.width)
+                count: Int(canvasRect.width)
             ),
-            count: Int(canvasSize.height)
+            count: Int(canvasRect.height)
         )
     }
 }

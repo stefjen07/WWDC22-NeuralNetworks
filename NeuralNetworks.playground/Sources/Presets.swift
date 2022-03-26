@@ -12,23 +12,22 @@ extension NNPreset {
 }
 
 public struct LinearPreset: NNPreset {
+    static let inputs: [InputType] = [.x, .y, .x2, .y2]
+    
     public var neuralNetwork = NeuralNetwork(
-        inputs: [.x, .y],
+        inputs: inputs,
         layers: [
-            Dense(inputSize: 2, neuronsCount: 2, function: .sigmoid),
+            Dense(inputSize: inputs.count, neuronsCount: 2, function: .sigmoid),
             Dense(inputSize: 2, neuronsCount: 1, function: .sigmoid)
         ],
         lossFunction: .binary,
-        learningRate: 0.5,
+        learningRate: 5,
         epochs: 100,
         batchSize: 8,
         delay: 100
     )
     
-    public var dataset: Dataset = Dataset(items: (0..<50).map { _ in
-        let x = Int.random(in: 0..<20), y = Int.random(in: 0..<20)
-        return .init(flatInput: [Float(x), Float(y)], flatOutput: [(x+y < 15) ? 1 : 0])
-    })
+    public var dataset: Dataset = Dataset(predicator: { ($0.x + $0.y < 15) ? 1 : 0 }, inputs: inputs)
 
     public init() {
 
@@ -36,16 +35,17 @@ public struct LinearPreset: NNPreset {
 }
 
 public struct QuadPreset: NNPreset {
-    static let inputs: [InputType] = [.x, .y, .x2, .y2]
+    static let inputs: [InputType] = [.x, .y, .x2, .y2, .sinx, .siny]
     
     public var neuralNetwork = NeuralNetwork(
         inputs: inputs,
         layers: [
-            Dense(inputSize: inputs.count, neuronsCount: 4, function: .sigmoid),
-            Dense(inputSize: 4, neuronsCount: 1, function: .sigmoid)
+            Dense(inputSize: inputs.count, neuronsCount: 4, function: .tanh),
+            Dense(inputSize: 4, neuronsCount: 2, function: .tanh),
+            Dense(inputSize: 2, neuronsCount: 1, function: .tanh)
         ],
         lossFunction: .binary,
-        learningRate: 1,
+        learningRate: 5,
         epochs: 100,
         batchSize: 8,
         delay: 100
@@ -65,10 +65,11 @@ public struct LinePreset: NNPreset {
         inputs: inputs,
         layers: [
             Dense(inputSize: inputs.count, neuronsCount: 4, function: .sigmoid),
+            Dense(inputSize: 4, neuronsCount: 4, function: .sigmoid),
             Dense(inputSize: 4, neuronsCount: 1, function: .sigmoid)
         ],
         lossFunction: .binary,
-        learningRate: 1,
+        learningRate: 5,
         epochs: 100,
         batchSize: 8,
         delay: 100

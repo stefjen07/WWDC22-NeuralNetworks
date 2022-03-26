@@ -152,6 +152,8 @@ public enum InputType: Int, Codable {
     case y
     case x2
     case y2
+    case sinx
+    case siny
     
     func inputForPoint(_ point: CGPoint) -> Float {
         switch self {
@@ -163,6 +165,10 @@ public enum InputType: Int, Codable {
             return Float(pow(point.x, 2))
         case .y2:
             return Float(pow(point.y, 2))
+        case .sinx:
+            return Float(sin(point.x))
+        case .siny:
+            return Float(sin(point.y))
         }
     }
 }
@@ -191,9 +197,9 @@ final public class NeuralNetwork: Codable {
     }
     
     var pointsToCheck: [CGPoint] {
-        return (0..<Int(canvasSize.height)).flatMap { x in
-            (0..<Int(canvasSize.width)).map { y in
-                return CGPoint(x: CGFloat(x) + startPoint.x, y: CGFloat(y) + startPoint.y)
+        return (0..<Int(canvasRect.height)).flatMap { x in
+            (0..<Int(canvasRect.width)).map { y in
+                return CGPoint(x: CGFloat(x) + canvasRect.minX, y: CGFloat(y) + canvasRect.minY)
             }
         }
     }
@@ -236,14 +242,14 @@ final public class NeuralNetwork: Codable {
             let input = DataPiece(size: .init(width: inputs.count), body: inputs.map { $0.inputForPoint(point) })
             forward(
                 networkInput: input,
-                savePoint: .init(x: point.x - startPoint.x, y: point.y - startPoint.y)
+                savePoint: .init(x: point.x - canvasRect.minX, y: point.y - canvasRect.minY)
             )
         }
     }
 
     func showOutputMaps() {
-        for i in 0..<layers.count {
-            layers[i].showOutputMaps()
+        DispatchQueue.concurrentPerform(iterations: layers.count) { i in
+            self.layers[i].showOutputMaps()
         }
     }
 

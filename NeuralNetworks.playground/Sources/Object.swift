@@ -105,5 +105,5 @@ typealias SystemColor = NSColor
 #endif
 
 func weightToColor(_ value: CGFloat) -> SystemColor {
-    return SystemColor(red: 1-value, green: value, blue: 0, alpha: 1)
+    return SystemColor(red: value, green: 0, blue: 1-value, alpha: 1)
 }
