@@ -1,7 +1,7 @@
 import Foundation
 import SpriteKit
 
-struct Neuron: Codable {
+class Neuron: Codable {
     public enum CodingKeys: String, CodingKey {
         case weights
         case weightsDelta
@@ -17,7 +17,7 @@ struct Neuron: Codable {
         try container.encode(biasDelta, forKey: .biasDelta)
     }
 
-    init(from decoder: Decoder) throws {
+    required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         weights = try container.decode([Float].self, forKey: .weights)
         weightsDelta = try container.decode([Float].self, forKey: .weightsDelta)
@@ -32,6 +32,7 @@ struct Neuron: Codable {
         self.biasDelta = biasDelta
     }
 
+    var output: Float = 0
     var weights: [Float]
     var weightsDelta: [Float]
     var bias: Float

@@ -111,10 +111,8 @@ final public class NeuralNetwork: Codable {
     public func printSummary() {
         for rawLayer in layers {
             switch rawLayer {
-            case let layer as Dense:
-                print("Dense layer: \(layer.neurons.count) neurons")
-            case let layer as Dropout:
-                print("Dropout layer: \(layer.neurons.count) neurons, \(layer.probability) probability")
+            case let layer as FullyConnectedLayer:
+                print("FullyConnectedLayer layer: \(layer.neurons.count) neurons")
             default:
                 break
             }
@@ -206,7 +204,7 @@ final public class NeuralNetwork: Codable {
                     self.deltaWeights(row: item.input)
                 }
                 for layer in self.layers {
-                    layer.updateWeights()
+                    layer.updateWeights(learningRate: learningRate)
                 }
                 shuffledSet.removeFirst(min(self.batchSize, shuffledSet.count))
                 generateOutputMaps()
@@ -216,7 +214,7 @@ final public class NeuralNetwork: Codable {
             error = lossFunction.cost(sum: error, outputSize: outputSize)
             print("Epoch \(epoch+1), error \(error).")
         }
-        print(layers.first as? Dense)
+        print(layers.first as? FullyConnectedLayer)
         return error
     }
 
@@ -254,9 +252,7 @@ final public class NeuralNetwork: Codable {
         var previous: Layer? = nil
         for i in (0..<layers.count).reversed() {
             input = layers[i].backward(input: input, previous: previous)
-            if !(layers[i] is Dropout) {
-                previous = layers[i]
-            }
+            previous = layers[i]
         }
     }
 }

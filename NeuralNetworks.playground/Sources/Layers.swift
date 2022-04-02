@@ -27,8 +27,7 @@ public struct LayerWrapper: Codable {
     }
 
     private enum Base: Int, Codable {
-        case dense = 0
-        case dropout
+        case FullyConnectedLayer = 0
     }
 
     init(_ layer: Layer) {
@@ -38,11 +37,8 @@ public struct LayerWrapper: Codable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch layer {
-        case let payload as Dense:
-            try container.encode(Base.dense, forKey: .base)
-            try container.encode(payload, forKey: .payload)
-        case let payload as Dropout:
-            try container.encode(Base.dropout, forKey: .base)
+        case let payload as FullyConnectedLayer:
+            try container.encode(Base.FullyConnectedLayer, forKey: .base)
             try container.encode(payload, forKey: .payload)
         default:
             fatalError()
@@ -54,10 +50,8 @@ public struct LayerWrapper: Codable {
         let base = try container.decode(Base.self, forKey: .base)
 
         switch base {
-        case .dense:
-            self.layer = try container.decode(Dense.self, forKey: .payload)
-        case .dropout:
-            self.layer = try container.decode(Dropout.self, forKey: .payload)
+        case .FullyConnectedLayer:
+            self.layer = try container.decode(FullyConnectedLayer.self, forKey: .payload)
         }
     }
 
@@ -77,7 +71,6 @@ public class Layer: Codable {
     var neurons: [Neuron] = []
     var outputMap: [[[Float]]]
     fileprivate var function: ActivationFunction
-    fileprivate var output: DataPiece?
 
     private enum CodingKeys: String, CodingKey {
         case neurons
@@ -89,7 +82,6 @@ public class Layer: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(function.rawValue, forKey: .function)
         try container.encode(neurons, forKey: .neurons)
-        try container.encode(output, forKey: .output)
     }
 
     public required init(from decoder: Decoder) throws {
@@ -106,7 +98,6 @@ public class Layer: Codable {
             ),
             count: Int(canvasRect.height)
         )
-        output = try container.decode(DataPiece.self, forKey: .output)
     }
 
     func modifyTexture(_ texture: SKMutableTexture, neuronIndex: Int) {
@@ -146,7 +137,7 @@ public class Layer: Codable {
         return input
     }
 
-    func updateWeights() {
+    func updateWeights(learningRate: Float) {
         return
     }
 
@@ -165,10 +156,9 @@ public class Layer: Codable {
     }
 }
 
-public class Dense: Layer {
+public class FullyConnectedLayer: Layer {
     public init(inputSize: Int, neuronsCount: Int, function: ActivationFunction) {
         super.init(function: function, neuronsCount: neuronsCount)
-        output = .init(size: .init(width: neuronsCount), body: Array(repeating: Float.zero, count: neuronsCount))
         self.neurons = (0..<neuronsCount).map { _ in
             return Neuron(
                 weights: (0..<inputSize).map { _ in
@@ -187,24 +177,23 @@ public class Dense: Layer {
 
     override func forward(input: DataPiece, dropoutEnabled: Bool, savePoint: CGPoint? = nil) -> DataPiece {
         input.body.withUnsafeBufferPointer { inputPtr in
-            output?.body.withUnsafeMutableBufferPointer { outputPtr in
-                neurons.withUnsafeBufferPointer { neuronsPtr in
-                    DispatchQueue.concurrentPerform(iterations: neuronsPtr.count, execute: { i in
-                        var out = neuronsPtr[i].bias
-                        neuronsPtr[i].weights.withUnsafeBufferPointer { weightsPtr in
-                            DispatchQueue.concurrentPerform(iterations: neuronsPtr[i].weights.count, execute: { i in
-                                out += weightsPtr[i] * inputPtr[i]
-                            })
-                        }
-                        outputPtr[i] = function.transfer(input: out)
-                    })
-                }
+            neurons.withUnsafeBufferPointer { neuronsPtr in
+                DispatchQueue.concurrentPerform(iterations: neuronsPtr.count, execute: { i in
+                    var output = neuronsPtr[i].bias
+                    neuronsPtr[i].weights.withUnsafeBufferPointer { weightsPtr in
+                        DispatchQueue.concurrentPerform(iterations: neuronsPtr[i].weights.count, execute: { i in
+                            output += weightsPtr[i] * inputPtr[i]
+                        })
+                    }
+                    neuronsPtr[i].output = function.transfer(input: output)
+                })
             }
         }
-        if let savePoint = savePoint, let output = output {
-            outputMap[Int(savePoint.x)][Int(savePoint.y)] = output.body
+        let output = neurons.map { $0.output }
+        if let savePoint = savePoint {
+            outputMap[Int(savePoint.x)][Int(savePoint.y)] = output
         }
-        return output ?? input
+        return DataPiece(size: .init(width: output.count), body: output)
     }
 
     override func backward(input: DataPiece, previous: Layer?) -> DataPiece {
@@ -217,13 +206,13 @@ public class Dense: Layer {
             }
         } else {
             for j in 0..<neurons.count {
-                errors[j] = output!.body[j] - input.body[j]
+                errors[j] = neurons[j].output - input.body[j]
             }
         }
         for j in 0..<neurons.count {
-            neurons[j].biasDelta = errors[j] * function.derivative(output: output!.body[j])
+            neurons[j].biasDelta = errors[j] * function.derivative(output: neurons[j].output)
         }
-        return output ?? input
+        return DataPiece(size: .init(width: 0), body: [])
     }
 
     override func deltaWeights(input: DataPiece, learningRate: Float) -> DataPiece {
@@ -234,15 +223,15 @@ public class Dense: Layer {
                         DispatchQueue.concurrentPerform(iterations: deltaPtr.count, execute: { j in
                             deltaPtr[j] -= learningRate * neuronsPtr[i].biasDelta * inputPtr[j]
                         })
-                        neuronsPtr[i].bias -= learningRate * neuronsPtr[i].biasDelta
                     }
                 })
             }
         }
-        return output ?? input
+        let output = neurons.map { $0.output }
+        return DataPiece(size: .init(width: output.count), body: output)
     }
 
-    override func updateWeights() {
+    override func updateWeights(learningRate: Float) {
         let neuronsCount = neurons.count
         neurons.withUnsafeMutableBufferPointer { neuronsPtr in
             DispatchQueue.concurrentPerform(iterations: neuronsCount, execute: { i in
@@ -251,9 +240,9 @@ public class Dense: Layer {
                         let weightsCount = weightsPtr.count
                         DispatchQueue.concurrentPerform(iterations: weightsCount, execute: { j in
                             weightsPtr[j] += deltaPtr[j]
-//                            print(deltaPtr[j])
                             deltaPtr[j] = 0
                         })
+                        neuronsPtr[i].bias -= learningRate * neuronsPtr[i].biasDelta
                     }
                 }
             })
@@ -273,68 +262,5 @@ public class Dense: Layer {
                 }
             }
         }
-    }
-
-}
-
-public class Dropout: Layer {
-    var probability: Int
-    var cache: [Bool]
-
-    private enum CodingKeys: String, CodingKey {
-        case probability
-        case cache
-    }
-
-    public override func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(probability, forKey: .probability)
-        try container.encode(cache, forKey: .cache)
-        try super.encode(to: encoder)
-    }
-
-    public init(inputSize: Int, probability: Int) {
-        self.probability = probability
-        self.cache = Array(repeating: true, count: inputSize)
-        super.init(function: .plain, neuronsCount: 0)
-        self.neurons = Array(
-            repeating: Neuron(weights: [], weightsDelta: [], bias: 0.0, biasDelta: 0.0),
-            count: inputSize
-        )
-        output = DataPiece(size: .init(width: inputSize), body: Array(repeating: Float.zero, count: inputSize))
-    }
-
-    public required init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.probability = try container.decode(Int.self, forKey: .probability)
-        self.cache = try container.decode([Bool].self, forKey: .cache)
-        try super.init(from: decoder)
-    }
-
-    override func forward(input: DataPiece, dropoutEnabled: Bool, savePoint: CGPoint? = nil) -> DataPiece {
-        output = input
-        if dropoutEnabled {
-            cache.withUnsafeMutableBufferPointer { cachePtr in
-                output?.body.withUnsafeMutableBufferPointer { outputPtr in
-                    DispatchQueue.concurrentPerform(iterations: outputPtr.count, execute: { i in
-                        if Int.random(in: 0...100) < probability {
-                            cachePtr[i] = false
-                            outputPtr[i] = 0
-                        } else {
-                            cachePtr[i] = true
-                        }
-                    })
-                }
-            }
-        }
-        return output ?? input
-    }
-
-    override func backward(input: DataPiece, previous: Layer?) -> DataPiece {
-        return output ?? input
-    }
-
-    override func deltaWeights(input: DataPiece, learningRate: Float) -> DataPiece {
-        return output ?? input
     }
 }

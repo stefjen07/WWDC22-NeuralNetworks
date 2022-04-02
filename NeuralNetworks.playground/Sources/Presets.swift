@@ -18,9 +18,8 @@ public struct GaussianPreset: NNPreset {
     public var neuralNetwork = NeuralNetwork(
         inputs: inputs,
         layers: [
-            Dense(inputSize: inputs.count, neuronsCount: 4, function: .sigmoid),
-            Dense(inputSize: 4, neuronsCount: 4, function: .sigmoid),
-            Dense(inputSize: 4, neuronsCount: 1, function: .sigmoid)
+            FullyConnectedLayer(inputSize: inputs.count, neuronsCount: 8, function: .sigmoid),
+            FullyConnectedLayer(inputSize: 8, neuronsCount: 1, function: .sigmoid)
         ],
         lossFunction: .binary,
         learningRate: 3,
@@ -55,9 +54,9 @@ public struct CircleInCirclePreset: NNPreset {
     public var neuralNetwork = NeuralNetwork(
         inputs: inputs,
         layers: [
-            Dense(inputSize: inputs.count, neuronsCount: 4, function: .sigmoid),
-            Dense(inputSize: 4, neuronsCount: 4, function: .sigmoid),
-            Dense(inputSize: 4, neuronsCount: 1, function: .sigmoid)
+            FullyConnectedLayer(inputSize: inputs.count, neuronsCount: 4, function: .sigmoid),
+            FullyConnectedLayer(inputSize: 4, neuronsCount: 4, function: .sigmoid),
+            FullyConnectedLayer(inputSize: 4, neuronsCount: 1, function: .sigmoid)
         ],
         lossFunction: .binary,
         learningRate: 3,
@@ -74,12 +73,14 @@ public struct CircleInCirclePreset: NNPreset {
             return CGPoint(x: x, y: y)
         },
         secondGenerator: {
-            var x = CGFloat.random(in: canvasRect.width/4...canvasRect.width/2)
+            let x = CGFloat.random(in: -canvasRect.width/2...canvasRect.width/2)
+            let yUpperbound = sqrt(pow(canvasRect.width/2, 2) - pow(x, 2))
+            let yLowerbound = (abs(x) > abs(canvasRect.width/4)) ? 0 : sqrt(pow(canvasRect.width/4, 2) - pow(x, 2))
+            print(yLowerbound, yUpperbound)
+            var y = CGFloat.random(in: yLowerbound...yUpperbound)
             if Bool.random() {
-                x = -x
+                y = -y
             }
-            let yLimit = sqrt(pow(canvasRect.width/2, 2) - pow(x, 2))
-            let y = CGFloat.random(in: -yLimit...yLimit)
             return CGPoint(x: x, y: y)
         },
         count: 100,
@@ -97,9 +98,9 @@ public struct QuartersPreset: NNPreset {
     public var neuralNetwork = NeuralNetwork(
         inputs: inputs,
         layers: [
-            Dense(inputSize: inputs.count, neuronsCount: 4, function: .sigmoid),
-            Dense(inputSize: 4, neuronsCount: 4, function: .sigmoid),
-            Dense(inputSize: 4, neuronsCount: 1, function: .sigmoid)
+            FullyConnectedLayer(inputSize: inputs.count, neuronsCount: 4, function: .sigmoid),
+            FullyConnectedLayer(inputSize: 4, neuronsCount: 4, function: .sigmoid),
+            FullyConnectedLayer(inputSize: 4, neuronsCount: 1, function: .sigmoid)
         ],
         lossFunction: .binary,
         learningRate: 3,
@@ -134,14 +135,13 @@ public struct SpiralPreset: NNPreset {
     public var neuralNetwork = NeuralNetwork(
         inputs: inputs,
         layers: [
-            Dense(inputSize: inputs.count, neuronsCount: 4, function: .tanh),
-            Dense(inputSize: 4, neuronsCount: 4, function: .tanh),
-            Dense(inputSize: 4, neuronsCount: 1, function: .tanh)
+            FullyConnectedLayer(inputSize: inputs.count, neuronsCount: 8, function: .sigmoid),
+            FullyConnectedLayer(inputSize: 8, neuronsCount: 1, function: .sigmoid)
         ],
         lossFunction: .binary,
-        learningRate: 0.1,
+        learningRate: 3,
         epochs: 100,
-        batchSize: 8,
+        batchSize: 1,
         delay: 100
     )
     

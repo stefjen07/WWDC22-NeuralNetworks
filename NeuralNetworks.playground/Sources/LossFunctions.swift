@@ -25,7 +25,7 @@ public enum LossFunction: Int, Codable {
         case .meanSquared:
             return sum / Float(outputSize)
         case .binary:
-            return -sum / Float(outputSize)
+            return sum / Float(outputSize)
         }
     }
 }
