@@ -52,8 +52,8 @@ final public class NeuralNetwork: Codable {
     }
     
     var pointsToCheck: [CGPoint] {
-        return (0..<Int(canvasRect.height)).flatMap { x in
-            (0..<Int(canvasRect.width)).map { y in
+        return (0..<Int(canvasRect.height)).flatMap { y in
+            (0..<Int(canvasRect.width)).map { x in
                 return CGPoint(x: CGFloat(x) + canvasRect.minX, y: CGFloat(y) + canvasRect.minY)
             }
         }
