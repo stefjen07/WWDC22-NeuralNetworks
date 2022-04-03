@@ -71,13 +71,13 @@ public struct GaussianPreset: NNPreset {
         inputs: inputs,
         layers: [
             FullyConnectedLayer(inputSize: inputs.count, neuronsCount: 8, function: .sigmoid),
-            FullyConnectedLayer(inputSize: 8, neuronsCount: 1, function: .sigmoid)
+            FullyConnectedLayer(inputSize: 8, neuronsCount: 1, function: .tanh)
         ],
-        lossFunction: .binary,
-        learningRate: 3,
-        epochs: 100,
-        batchSize: 8,
-        delay: 100
+        lossFunction: .meanSquared,
+        learningRate: 0.003,
+        epochs: 1000,
+        batchSize: 1,
+        delay: 0
     )
     
     public var dataset: Dataset = Dataset(
@@ -108,13 +108,13 @@ public struct CircleInCirclePreset: NNPreset {
         layers: [
             FullyConnectedLayer(inputSize: inputs.count, neuronsCount: 4, function: .sigmoid),
             FullyConnectedLayer(inputSize: 4, neuronsCount: 4, function: .sigmoid),
-            FullyConnectedLayer(inputSize: 4, neuronsCount: 1, function: .sigmoid)
+            FullyConnectedLayer(inputSize: 4, neuronsCount: 1, function: .tanh)
         ],
-        lossFunction: .binary,
-        learningRate: 3,
-        epochs: 100,
-        batchSize: 8,
-        delay: 100
+        lossFunction: .meanSquared,
+        learningRate: 0.003,
+        epochs: 1000,
+        batchSize: 1,
+        delay: 0
     )
     
     public var dataset: Dataset = Dataset(
@@ -134,7 +134,7 @@ public struct CircleInCirclePreset: NNPreset {
             }
             return CGPoint(x: x, y: y)
         },
-        count: 300,
+        count: 400,
         inputs: inputs
     )
 
@@ -150,14 +150,13 @@ public struct QuartersPreset: NNPreset {
         inputs: inputs,
         layers: [
             FullyConnectedLayer(inputSize: inputs.count, neuronsCount: 4, function: .sigmoid),
-            FullyConnectedLayer(inputSize: 4, neuronsCount: 4, function: .sigmoid),
-            FullyConnectedLayer(inputSize: 4, neuronsCount: 1, function: .sigmoid)
+            FullyConnectedLayer(inputSize: 4, neuronsCount: 1, function: .tanh)
         ],
-        lossFunction: .binary,
-        learningRate: 3,
-        epochs: 100,
-        batchSize: 8,
-        delay: 100
+        lossFunction: .meanSquared,
+        learningRate: 0.003,
+        epochs: 1000,
+        batchSize: 1,
+        delay: 0
     )
     
     public var dataset: Dataset = Dataset(
@@ -171,7 +170,7 @@ public struct QuartersPreset: NNPreset {
             let absY = CGFloat.random(in: 0..<canvasRect.maxY)
             return CGPoint(x: x, y: x < 0 ? -absY : absY)
         },
-        count: 100,
+        count: 400,
         inputs: inputs
     )
 
@@ -190,10 +189,10 @@ public struct SpiralPreset: NNPreset {
             FullyConnectedLayer(inputSize: 8, neuronsCount: 1, function: .tanh)
         ],
         lossFunction: .meanSquared,
-        learningRate: 0.03,
-        epochs: 100,
-        batchSize: 8,
-        delay: 100
+        learningRate: 0.003,
+        epochs: 1000,
+        batchSize: 1,
+        delay: 0
     )
     
     public var dataset: Dataset = Dataset(

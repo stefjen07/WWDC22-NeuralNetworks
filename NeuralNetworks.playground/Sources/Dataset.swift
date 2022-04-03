@@ -108,7 +108,7 @@ public struct DataItem: Codable {
             currentDecimal /= 2
         }
         self.input = DataPiece(size: .init(width: binary.count), body: binary.reversed().map { Float($0) })
-        self.output = DataPiece(size: .init(width: 1), body: [output ? 1 : 0])
+        self.output = DataPiece(size: .init(width: 1), body: [output ? 1 : -1])
     }
 }
 

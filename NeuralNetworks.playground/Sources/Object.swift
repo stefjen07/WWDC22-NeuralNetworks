@@ -1,6 +1,16 @@
 import Foundation
 import SpriteKit
 
+extension SKSpriteNode {
+    func drawBorder(color: SystemColor, width: CGFloat) {
+        let shapeNode = SKShapeNode(rect: frame)
+        shapeNode.fillColor = .clear
+        shapeNode.strokeColor = color
+        shapeNode.lineWidth = width
+        addChild(shapeNode)
+    }
+}
+
 extension NeuralNetwork {
     public func generatePositions() {
         let padding: CGFloat = 20
@@ -30,8 +40,10 @@ extension NeuralNetwork {
         for j in 0..<inputNeurons.count {
             if let position = inputNeurons[j].position {
                 let node = SKSpriteNode(texture: inputNeurons[j].texture)
+                node.drawBorder(color: .black, width: 0.25)
                 node.zPosition = 2
                 node.position = position
+                node.size = .init(width: canvasRect.width * 1, height: canvasRect.height * 1)
                 trainScene.addChild(node)
                 inputNeurons[j].imageObject = node
             }
@@ -40,8 +52,10 @@ extension NeuralNetwork {
             for j in 0..<layers[i].neurons.count {
                 if let position = layers[i].neurons[j].position {
                     let imageNode = SKSpriteNode(texture: layers[i].neurons[j].texture)
+                    imageNode.drawBorder(color: .black, width: 0.25)
                     imageNode.zPosition = 2
                     imageNode.position = position
+                    imageNode.size = .init(width: canvasRect.width * 1, height: canvasRect.height * 1)
                     trainScene.addChild(imageNode)
                     layers[i].neurons[j].imageObject = imageNode
                 }
@@ -65,6 +79,7 @@ extension NeuralNetwork {
                     node.lineWidth = 1
                     trainScene.addChild(node)
                     layer.neurons[k].synapses.append(node)
+                    layer.neurons[k].synapsesLocks.append(NSLock())
                 }
             }
         }
@@ -83,6 +98,7 @@ extension NeuralNetwork {
                     node.lineWidth = 1
                     trainScene.addChild(node)
                     layers[i+1].neurons[k].synapses.append(node)
+                    layers[i+1].neurons[k].synapsesLocks.append(NSLock())
                 }
             }
         }
@@ -104,6 +120,13 @@ typealias SystemColor = UIColor
 typealias SystemColor = NSColor
 #endif
 
-func weightToColor(_ value: CGFloat) -> SystemColor {
-    return SystemColor(red: min(1, value), green: 0, blue: max(0, 1 - value), alpha: 1)
+func valueToColor(_ value: Float) -> SystemColor {
+    let value = CGFloat(value)
+    if value > 0 {
+        let normalized = 1 - min(1, value)
+        return SystemColor(red: 1, green: normalized, blue: normalized, alpha: 1)
+    } else {
+        let normalized = 1 - min(1, abs(value))
+        return SystemColor(red: normalized, green: normalized, blue: 1, alpha: 1)
+    }
 }

@@ -43,8 +43,6 @@ public struct LayerWrapper: Codable {
 }
 
 public class Layer: Codable {
-    var maxWeight: Float = 0, minWeight: Float = 0, lastMaxWeight: Float = 0, lastMinWeight: Float = 0
-
     var neurons: [Neuron]
     fileprivate var function: ActivationFunction
 
@@ -73,13 +71,8 @@ public class Layer: Codable {
                 let pixelCount = Int(length / MemoryLayout<RGBA>.stride)
                 let pixelBuffer = UnsafeMutableBufferPointer(start: pixelPtr, count: pixelCount)
                 for (index, value) in self.neurons[neuronIndex].outputMap.reduce([], +).enumerated() {
-                    let value = tanh(value) * 255
-                    pixelBuffer[index] = RGBA(
-                        red: UInt8(max(0, min(255, value))),
-                        green: 0,
-                        blue: UInt8(max(0, min(255, 255 - value))),
-                        alpha: 255
-                    )
+                    let color = valueToColor(value)
+                    pixelBuffer[index] = RGBA(color: color)
                 }
             }
         }
@@ -91,11 +84,11 @@ public class Layer: Codable {
         }
     }
 
-    func forward(input: DataPiece, dropoutEnabled: Bool, savePoint: CGPoint? = nil) -> DataPiece {
+    func forward(input: DataPiece, savePoint: CGPoint? = nil) -> DataPiece {
         return input
     }
 
-    func backward(input: DataPiece, previous: Layer?) -> DataPiece {
+    func backward(input: DataPiece?, previous: Layer?) -> DataPiece? {
         return input
     }
 
@@ -107,7 +100,7 @@ public class Layer: Codable {
         return
     }
 
-    fileprivate init(function: ActivationFunction, neuronsCount: Int) {
+    fileprivate init(function: ActivationFunction = .plain, neuronsCount: Int) {
         self.function = function
         self.neurons = Array(repeating: .init(weights: [], weightsDelta: [], bias: 0, biasDelta: 0), count: neuronsCount)
     }
@@ -119,7 +112,7 @@ public class FullyConnectedLayer: Layer {
         self.neurons = (0..<neuronsCount).map { _ in
             return Neuron(
                 weights: (0..<inputSize).map { _ in
-                    Float.random(in: -10.0 ... 10.0)
+                    Float.random(in: -1.0 ... 1.0)
                 },
                 weightsDelta: .init(repeating: Float.zero, count: inputSize),
                 bias: 0.0,
@@ -132,7 +125,7 @@ public class FullyConnectedLayer: Layer {
         try super.init(from: decoder)
     }
 
-    override func forward(input: DataPiece, dropoutEnabled: Bool, savePoint: CGPoint? = nil) -> DataPiece {
+    override func forward(input: DataPiece, savePoint: CGPoint? = nil) -> DataPiece {
         input.body.withUnsafeBufferPointer { inputPtr in
             neurons.withUnsafeBufferPointer { neuronsPtr in
                 DispatchQueue.concurrentPerform(iterations: neuronsPtr.count, execute: { i in
@@ -157,7 +150,7 @@ public class FullyConnectedLayer: Layer {
         return DataPiece(size: .init(width: output.count), body: output)
     }
 
-    override func backward(input: DataPiece, previous: Layer?) -> DataPiece {
+    override func backward(input: DataPiece?, previous: Layer?) -> DataPiece? {
         var errors = Array(repeating: Float.zero, count: neurons.count)
         if let previous = previous {
             for j in 0..<neurons.count {
@@ -165,7 +158,7 @@ public class FullyConnectedLayer: Layer {
                     errors[j] += neuron.weights[j] * neuron.biasDelta
                 }
             }
-        } else {
+        } else if let input = input {
             for j in 0..<neurons.count {
                 errors[j] = neurons[j].output - input.body[j]
             }
@@ -173,7 +166,7 @@ public class FullyConnectedLayer: Layer {
         for j in 0..<neurons.count {
             neurons[j].biasDelta = errors[j] * function.derivative(output: neurons[j].output)
         }
-        return DataPiece(size: .init(width: 0), body: [])
+        return nil
     }
 
     override func deltaWeights(input: DataPiece, learningRate: Float) -> DataPiece {
@@ -184,7 +177,7 @@ public class FullyConnectedLayer: Layer {
                         DispatchQueue.concurrentPerform(iterations: deltaPtr.count, execute: { j in
                             deltaPtr[j] -= learningRate * neuronsPtr[i].biasDelta * inputPtr[j]
                         })
-                        neuronsPtr[i].totalBiasDelta += neuronsPtr[i].biasDelta
+                        neuronsPtr[i].totalBiasDelta -= learningRate * neuronsPtr[i].biasDelta
                     }
                 })
             }
@@ -204,23 +197,17 @@ public class FullyConnectedLayer: Layer {
                             weightsPtr[j] += deltaPtr[j] / Float(batchSize)
                             deltaPtr[j] = 0
                         })
-                        neuronsPtr[i].bias -= (learningRate * neuronsPtr[i].totalBiasDelta / Float(batchSize))
+                        neuronsPtr[i].bias += neuronsPtr[i].totalBiasDelta / Float(batchSize)
                     }
                 }
             })
         }
-        lastMinWeight = minWeight
-        lastMaxWeight = maxWeight
-        minWeight = 0
-        maxWeight = 0.5
         for neuron in neurons {
             for i in 0..<min(neuron.synapses.count, neuron.weights.count) {
-                minWeight = min(minWeight, neuron.weights[i])
-                maxWeight = max(maxWeight, neuron.weights[i])
                 DispatchQueue.main.async {
-                    neuron.synapses[i].strokeColor = weightToColor(
-                        CGFloat((neuron.weights[i] - self.lastMinWeight) / self.lastMaxWeight)
-                    )
+                    neuron.synapsesLocks[i].lock()
+                    neuron.synapses[i].strokeColor = valueToColor(neuron.weights[i])
+                    neuron.synapsesLocks[i].unlock()
                 }
             }
         }

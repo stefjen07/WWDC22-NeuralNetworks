@@ -34,7 +34,6 @@ final public class NeuralNetwork: Codable {
     public var learningRate: Float
     public var epochs: Int
     public var batchSize: Int
-    var dropoutEnabled = true
     public var trainScene = SKScene(size: .init(width: 400, height: 800))
     public var delay: Int
     var inputNeurons: [Neuron] = []
@@ -67,10 +66,7 @@ final public class NeuralNetwork: Codable {
         let inputs = pointsToCheck.map {
             return CGFloat(inputForPoint($0, neuronIndex: neuronIndex))
         }
-        let maxValue = inputs.max() ?? 1, minValue = inputs.min() ?? 0
-        return inputs.map {
-            ($0 - minValue) / (maxValue - minValue)
-        }
+        return inputs
     }
     
     func generateInputMaps() {
@@ -80,7 +76,7 @@ final public class NeuralNetwork: Codable {
                 let pixelCount = Int(length / MemoryLayout<RGBA>.stride)
                 let pixelBuffer = UnsafeMutableBufferPointer(start: pixelPtr, count: pixelCount)
                 for (index, value) in self.normalMap(neuronIndex: neuronIndex).enumerated() {
-                    let value = tanh(value) * 255
+                    let value = value * 255
                     pixelBuffer[index] = RGBA(
                         red: UInt8(max(0, min(255, value))),
                         green: 0,
@@ -186,17 +182,20 @@ final public class NeuralNetwork: Codable {
     }
 
     public func train(set: Dataset) -> Float {
-        var error = Float.zero, outputSize = Int.zero
-        dropoutEnabled = true
+        generateOutputMaps()
+        showOutputMaps()
+        var error: Float = 0
         for epoch in 0..<epochs {
             var shuffledSet = set.items.shuffled()
             error = 0
-            outputSize = 0
+            var outputSize = 0
+            var guessed: Float = 0
             while !shuffledSet.isEmpty {
                 let batch = shuffledSet.prefix(self.batchSize)
                 for item in batch {
                     let predictions = self.forward(networkInput: item.input)
                     for i in 0..<item.output.body.count {
+                        guessed += (round(predictions.body[i]) == round(item.output.body[i])) ? 1 : 0
                         error += lossFunction.loss(prediction: predictions.body[i], expectation: item.output.body[i])
                         outputSize += 1
                     }
@@ -207,19 +206,17 @@ final public class NeuralNetwork: Codable {
                     layer.updateWeights(batchSize: batchSize, learningRate: learningRate)
                 }
                 shuffledSet.removeFirst(min(self.batchSize, shuffledSet.count))
-                generateOutputMaps()
-                showOutputMaps()
                 usleep(useconds_t(delay * 1000))
             }
+            generateOutputMaps()
+            showOutputMaps()
             error = lossFunction.cost(sum: error, outputSize: outputSize)
-            print("Epoch \(epoch+1), error \(error).")
+            print("Epoch \(epoch+1), error \(error), accuracy \(guessed / Float(outputSize))")
         }
-        print(layers.first as? FullyConnectedLayer)
         return error
     }
 
     public func predict(input: DataPiece) -> DataPiece {
-        dropoutEnabled = false
         return forward(networkInput: input)
     }
 
@@ -242,13 +239,13 @@ final public class NeuralNetwork: Codable {
     private func forward(networkInput: DataPiece, savePoint: CGPoint? = nil) -> DataPiece {
         var input = networkInput
         for i in 0..<layers.count {
-            input = layers[i].forward(input: input, dropoutEnabled: dropoutEnabled, savePoint: savePoint)
+            input = layers[i].forward(input: input, savePoint: savePoint)
         }
         return input
     }
 
     private func backward(expected: DataPiece) {
-        var input = expected
+        var input: DataPiece? = expected
         var previous: Layer? = nil
         for i in (0..<layers.count).reversed() {
             input = layers[i].backward(input: input, previous: previous)

@@ -52,5 +52,6 @@ class Neuron: Codable {
         pixelFormat: Int32(kCVPixelFormatType_32RGBA)
     )
     var synapses: [SKShapeNode] = []
+    var synapsesLocks: [NSLock] = []
     var position: CGPoint?
 }

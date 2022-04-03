@@ -1,5 +1,16 @@
 import Foundation
 
+#if os(iOS)
+import UIKit
+
+extension UIColor {
+    var redValue: CGFloat{ return CIColor(color: self).red }
+    var greenValue: CGFloat{ return CIColor(color: self).green }
+    var blueValue: CGFloat{ return CIColor(color: self).blue }
+    var alphaValue: CGFloat{ return CIColor(color: self).alpha }
+}
+#endif
+
 struct RGBA {
     static let white = RGBA(red: 255, green: 255, blue: 255, alpha: 255)
     
@@ -7,7 +18,15 @@ struct RGBA {
     var green: UInt8
     var blue: UInt8
     var alpha: UInt8
-
+    
+    init(color: SystemColor) {
+        #if os(iOS)
+        self.init(red: UInt8(min(255, color.redValue * 255)), green: UInt8(min(255, color.greenValue * 255)), blue: UInt8(min(255, color.blueValue * 255)), alpha: UInt8(min(255, color.alphaValue * 255)))
+        #else
+        self.init(red: UInt8(min(255, color.redComponent * 255)), green: UInt8(min(255, color.greenComponent * 255)), blue: UInt8(min(255, color.blueComponent * 255)), alpha: UInt8(min(255, color.alphaComponent * 255)))
+        #endif
+    }
+    
     init(red: UInt8, green: UInt8, blue: UInt8, alpha: UInt8) {
         let alphaScale = Float(alpha) / Float(UInt8.max)
         self.red = red.scaled(by: alphaScale)

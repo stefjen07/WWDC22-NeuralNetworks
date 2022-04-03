@@ -17,8 +17,11 @@ public class NNView: SKView {
     
     private func showDatasetImage() {
         let node = SKSpriteNode(texture: preset.datasetImage())
+        node.drawBorder(color: .black, width: 0.25)
+        
         let sceneRect = preset.neuralNetwork.trainScene.frame
         node.position = .init(x: sceneRect.width/2 - canvasRect.width, y: canvasRect.height - sceneRect.height/2)
+        
         preset.neuralNetwork.trainScene.addChild(node)
     }
 
