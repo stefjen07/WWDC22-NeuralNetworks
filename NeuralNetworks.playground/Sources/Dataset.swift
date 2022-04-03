@@ -78,6 +78,7 @@ public struct DataPiece: Codable, Equatable {
 public struct DataItem: Codable {
     var input: DataPiece
     var output: DataPiece
+    var point: CGPoint?
 
     public init(input: DataPiece, output: DataPiece) {
         self.input = input
@@ -92,6 +93,11 @@ public struct DataItem: Codable {
     public init(flatInput: [Float], flatOutput: [Float]) {
         self.input = DataPiece(size: .init(width: flatInput.count), body: flatInput)
         self.output = DataPiece(size: .init(width: flatOutput.count), body: flatOutput)
+    }
+    
+    public init(point: CGPoint, input: [Float], output: Float) {
+        self.init(flatInput: input, flatOutput: [output])
+        self.point = point
     }
 
     public init(decimal: Int, output: Bool) {
@@ -136,10 +142,10 @@ public struct Dataset: Codable {
     public init(firstGenerator: () -> CGPoint, secondGenerator: () -> CGPoint, count: Int, inputs: [InputType]) {
         items = (0..<count/2).map { _ in
             let point = firstGenerator()
-            return .init(flatInput: inputs.map { $0.inputForPoint(point) }, flatOutput: [1])
+            return .init(point: point, input: inputs.map { $0.inputForPoint(point) }, output: 1)
         } + (0..<count/2).map { _ in
             let point = secondGenerator()
-            return .init(flatInput: inputs.map { $0.inputForPoint(point) }, flatOutput: [0])
+            return .init(point: point, input: inputs.map { $0.inputForPoint(point) }, output: 0)
         }
     }
 

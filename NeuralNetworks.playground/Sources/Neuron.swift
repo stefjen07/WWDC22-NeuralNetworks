@@ -7,6 +7,7 @@ class Neuron: Codable {
         case weightsDelta
         case bias
         case biasDelta
+        case totalBiasDelta
     }
 
     func encode(to encoder: Encoder) throws {
@@ -33,10 +34,18 @@ class Neuron: Codable {
     }
 
     var output: Float = 0
+    var outputMap: [[Float]] = .init(
+        repeating: .init(
+            repeating: 0,
+            count: Int(canvasRect.width)
+        ),
+        count: Int(canvasRect.height)
+    )
     var weights: [Float]
     var weightsDelta: [Float]
     var bias: Float
     var biasDelta: Float
+    var totalBiasDelta: Float = 0
     var imageObject: SKSpriteNode?
     var texture: SKMutableTexture = SKMutableTexture(
         size: canvasRect.size,

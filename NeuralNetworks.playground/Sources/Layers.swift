@@ -3,21 +3,6 @@ import SpriteKit
 
 let canvasRect = CGRect(x: -10, y: -10, width: 20, height: 20)
 
-struct RGBA {
-    var red: UInt8
-    var green: UInt8
-    var blue: UInt8
-    var alpha: UInt8
-
-    init(red: UInt8, green: UInt8, blue: UInt8, alpha: UInt8) {
-        let alphaScale = Float(alpha) / Float(UInt8.max)
-        self.red = red.scaled(by: alphaScale)
-        self.blue = blue.scaled(by: alphaScale)
-        self.green = green.scaled(by: alphaScale)
-        self.alpha = alpha
-    }
-}
-
 public struct LayerWrapper: Codable {
     let layer: Layer
 
@@ -57,19 +42,10 @@ public struct LayerWrapper: Codable {
 
 }
 
-extension UInt8 {
-    func scaled(by value: Float) -> UInt8 {
-        var scale = UInt(round(Float(self) * value))
-        scale = Swift.min(scale, UInt(UInt8.max))
-        return UInt8(scale)
-    }
-}
-
 public class Layer: Codable {
     var maxWeight: Float = 0, minWeight: Float = 0, lastMaxWeight: Float = 0, lastMinWeight: Float = 0
 
-    var neurons: [Neuron] = []
-    var outputMap: [[[Float]]]
+    var neurons: [Neuron]
     fileprivate var function: ActivationFunction
 
     private enum CodingKeys: String, CodingKey {
@@ -88,16 +64,6 @@ public class Layer: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         function = try container.decode(ActivationFunction.self, forKey: .function)
         neurons = try container.decode([Neuron].self, forKey: .neurons)
-        outputMap = .init(
-            repeating: .init(
-                repeating: .init(
-                    repeating: 0,
-                    count: neurons.count
-                ),
-                count: Int(canvasRect.width)
-            ),
-            count: Int(canvasRect.height)
-        )
     }
 
     func modifyTexture(_ texture: SKMutableTexture, neuronIndex: Int) {
@@ -106,8 +72,8 @@ public class Layer: Codable {
                 let pixelPtr = ptr?.assumingMemoryBound(to: RGBA.self)
                 let pixelCount = Int(length / MemoryLayout<RGBA>.stride)
                 let pixelBuffer = UnsafeMutableBufferPointer(start: pixelPtr, count: pixelCount)
-                for (index, value) in self.outputMap.reduce([], +).enumerated() {
-                    let value = tanh(value[neuronIndex]) * 255
+                for (index, value) in self.neurons[neuronIndex].outputMap.reduce([], +).enumerated() {
+                    let value = tanh(value) * 255
                     pixelBuffer[index] = RGBA(
                         red: UInt8(max(0, min(255, value))),
                         green: 0,
@@ -137,22 +103,13 @@ public class Layer: Codable {
         return input
     }
 
-    func updateWeights(learningRate: Float) {
+    func updateWeights(batchSize: Int, learningRate: Float) {
         return
     }
 
     fileprivate init(function: ActivationFunction, neuronsCount: Int) {
         self.function = function
-        outputMap = .init(
-            repeating: .init(
-                repeating: .init(
-                    repeating: 0,
-                    count: neuronsCount
-                ),
-                count: Int(canvasRect.width)
-            ),
-            count: Int(canvasRect.height)
-        )
+        self.neurons = Array(repeating: .init(weights: [], weightsDelta: [], bias: 0, biasDelta: 0), count: neuronsCount)
     }
 }
 
@@ -189,10 +146,14 @@ public class FullyConnectedLayer: Layer {
                 })
             }
         }
-        let output = neurons.map { $0.output }
+        
         if let savePoint = savePoint {
-            outputMap[Int(savePoint.x)][Int(savePoint.y)] = output
+            neurons.forEach { neuron in
+                neuron.outputMap[Int(savePoint.y)][Int(savePoint.x)] = neuron.output
+            }
         }
+        
+        let output = neurons.map { $0.output }
         return DataPiece(size: .init(width: output.count), body: output)
     }
 
@@ -223,6 +184,7 @@ public class FullyConnectedLayer: Layer {
                         DispatchQueue.concurrentPerform(iterations: deltaPtr.count, execute: { j in
                             deltaPtr[j] -= learningRate * neuronsPtr[i].biasDelta * inputPtr[j]
                         })
+                        neuronsPtr[i].totalBiasDelta += neuronsPtr[i].biasDelta
                     }
                 })
             }
@@ -231,7 +193,7 @@ public class FullyConnectedLayer: Layer {
         return DataPiece(size: .init(width: output.count), body: output)
     }
 
-    override func updateWeights(learningRate: Float) {
+    override func updateWeights(batchSize: Int, learningRate: Float) {
         let neuronsCount = neurons.count
         neurons.withUnsafeMutableBufferPointer { neuronsPtr in
             DispatchQueue.concurrentPerform(iterations: neuronsCount, execute: { i in
@@ -239,10 +201,10 @@ public class FullyConnectedLayer: Layer {
                     neuronsPtr[i].weightsDelta.withUnsafeMutableBufferPointer { deltaPtr in
                         let weightsCount = weightsPtr.count
                         DispatchQueue.concurrentPerform(iterations: weightsCount, execute: { j in
-                            weightsPtr[j] += deltaPtr[j]
+                            weightsPtr[j] += deltaPtr[j] / Float(batchSize)
                             deltaPtr[j] = 0
                         })
-                        neuronsPtr[i].bias -= learningRate * neuronsPtr[i].biasDelta
+                        neuronsPtr[i].bias -= (learningRate * neuronsPtr[i].totalBiasDelta / Float(batchSize))
                     }
                 }
             })

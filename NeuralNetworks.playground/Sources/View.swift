@@ -14,12 +14,19 @@ public class NNView: SKView {
 
         self.presentScene(preset.neuralNetwork.trainScene)
     }
+    
+    private func showDatasetImage() {
+        let node = SKSpriteNode(texture: preset.datasetImage())
+        let sceneRect = preset.neuralNetwork.trainScene.frame
+        node.position = .init(x: sceneRect.width/2 - canvasRect.width, y: canvasRect.height - sceneRect.height/2)
+        preset.neuralNetwork.trainScene.addChild(node)
+    }
 
     public func showScene() {
         preset.neuralNetwork.generateScene()
+        showDatasetImage()
 
         let queue = DispatchQueue(label: "networkQueue")
-
         queue.async {
             self.preset.train()
         }

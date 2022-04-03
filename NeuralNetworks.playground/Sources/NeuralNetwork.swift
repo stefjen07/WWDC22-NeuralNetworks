@@ -204,7 +204,7 @@ final public class NeuralNetwork: Codable {
                     self.deltaWeights(row: item.input)
                 }
                 for layer in self.layers {
-                    layer.updateWeights(learningRate: learningRate)
+                    layer.updateWeights(batchSize: batchSize, learningRate: learningRate)
                 }
                 shuffledSet.removeFirst(min(self.batchSize, shuffledSet.count))
                 generateOutputMaps()
