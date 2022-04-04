@@ -77,6 +77,16 @@ public class Layer: Codable {
             }
         }
     }
+    
+    func updateSynapses() {
+        for neuron in neurons {
+            for i in 0..<min(neuron.synapses.count, neuron.weights.count) {
+                DispatchQueue.main.sync {
+                    neuron.synapses[i].strokeColor = valueToColor(neuron.weights[i])
+                }
+            }
+        }
+    }
 
     func showOutputMaps() {
         neurons.indices.forEach { neuronIndex in
@@ -201,15 +211,6 @@ public class FullyConnectedLayer: Layer {
                     }
                 }
             })
-        }
-        for neuron in neurons {
-            for i in 0..<min(neuron.synapses.count, neuron.weights.count) {
-                DispatchQueue.main.async {
-                    neuron.synapsesLocks[i].lock()
-                    neuron.synapses[i].strokeColor = valueToColor(neuron.weights[i])
-                    neuron.synapsesLocks[i].unlock()
-                }
-            }
         }
     }
 }

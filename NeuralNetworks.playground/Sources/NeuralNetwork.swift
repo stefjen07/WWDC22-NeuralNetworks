@@ -210,6 +210,9 @@ final public class NeuralNetwork: Codable {
             }
             generateOutputMaps()
             showOutputMaps()
+            for layer in layers {
+                layer.updateSynapses()
+            }
             error = lossFunction.cost(sum: error, outputSize: outputSize)
             print("Epoch \(epoch+1), error \(error), accuracy \(guessed / Float(outputSize))")
         }

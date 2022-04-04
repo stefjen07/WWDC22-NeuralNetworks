@@ -79,7 +79,6 @@ extension NeuralNetwork {
                     node.lineWidth = 1
                     trainScene.addChild(node)
                     layer.neurons[k].synapses.append(node)
-                    layer.neurons[k].synapsesLocks.append(NSLock())
                 }
             }
         }
@@ -98,7 +97,6 @@ extension NeuralNetwork {
                     node.lineWidth = 1
                     trainScene.addChild(node)
                     layers[i+1].neurons[k].synapses.append(node)
-                    layers[i+1].neurons[k].synapsesLocks.append(NSLock())
                 }
             }
         }
