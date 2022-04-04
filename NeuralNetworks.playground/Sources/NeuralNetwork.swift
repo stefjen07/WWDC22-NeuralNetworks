@@ -29,15 +29,15 @@ public enum InputType: Int, Codable {
 }
 
 final public class NeuralNetwork: Codable {
-    public var layers: [Layer]
-    public var lossFunction: LossFunction
-    public var learningRate: Float
-    public var epochs: Int
-    public var batchSize: Int
-    public var trainScene = SKScene(size: .init(width: 400, height: 800))
-    public var delay: Int
-    var inputNeurons: [Neuron] = []
-    var inputs: [InputType]
+    internal var layers: [Layer]
+    private var lossFunction: LossFunction
+    private var learningRate: Float
+    private var epochs: Int
+    private var batchSize: Int
+    internal var trainScene = SKScene(size: .init(width: 400, height: 800))
+    private var delay: Int
+    internal var inputNeurons: [Neuron] = []
+    private var inputs: [InputType]
 
     private enum CodingKeys: String, CodingKey {
         case inputs
@@ -70,7 +70,7 @@ final public class NeuralNetwork: Codable {
     }
     
     func generateInputMaps() {
-        (0..<inputNeurons.count).forEach { neuronIndex in
+        for neuronIndex in 0..<inputNeurons.count {
             inputNeurons[neuronIndex].texture.modifyPixelData { ptr, length in
                 let pixelPtr = ptr?.assumingMemoryBound(to: RGBA.self)
                 let pixelCount = Int(length / MemoryLayout<RGBA>.stride)
@@ -89,9 +89,9 @@ final public class NeuralNetwork: Codable {
     }
 
     func generateOutputMaps() {
-        pointsToCheck.forEach { point in
+        for point in pointsToCheck {
             let input = DataPiece(size: .init(width: inputs.count), body: inputs.map { $0.inputForPoint(point) })
-            forward(
+            _ = forward(
                 networkInput: input,
                 savePoint: .init(x: point.x - canvasRect.minX, y: point.y - canvasRect.minY)
             )
@@ -108,7 +108,7 @@ final public class NeuralNetwork: Codable {
         for rawLayer in layers {
             switch rawLayer {
             case let layer as FullyConnectedLayer:
-                print("FullyConnectedLayer layer: \(layer.neurons.count) neurons")
+                print("Fully connected layer: \(layer.neurons.count) neurons")
             default:
                 break
             }
@@ -195,7 +195,7 @@ final public class NeuralNetwork: Codable {
                 for item in batch {
                     let predictions = self.forward(networkInput: item.input)
                     for i in 0..<item.output.body.count {
-                        guessed += (round(predictions.body[i]) == round(item.output.body[i])) ? 1 : 0
+                        guessed += (predictions.body[i].rounded() == item.output.body[i].rounded()) ? 1 : 0
                         error += lossFunction.loss(prediction: predictions.body[i], expectation: item.output.body[i])
                         outputSize += 1
                     }
@@ -255,13 +255,4 @@ final public class NeuralNetwork: Codable {
             previous = layers[i]
         }
     }
-}
-
-public func classifierOutput(classes: Int, correct: Int) -> DataPiece {
-    if correct>=classes {
-        fatalError("Correct class must be less than classes number.")
-    }
-    var output = Array(repeating: Float.zero, count: classes)
-    output[correct] = 1.0
-    return DataPiece(size: .init(width: classes), body: output)
 }

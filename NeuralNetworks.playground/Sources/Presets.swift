@@ -27,16 +27,12 @@ extension NNPreset {
             count: Int(canvasRect.height)
         )
         
-        print("Start filling map")
-        
         for item in dataset.items {
             let x = Int(item.point!.x - canvasRect.minX)
             let y = Int(item.point!.y - canvasRect.minY)
             
             datasetMap[y][x] = item.output.body[0]
         }
-        
-        print("End filling map")
         
         let dataLength = 4 * Int(canvasRect.size.square)
         var data = Data(count: dataLength)
@@ -106,14 +102,14 @@ public struct CircleInCirclePreset: NNPreset {
     public var neuralNetwork = NeuralNetwork(
         inputs: inputs,
         layers: [
-            FullyConnectedLayer(inputSize: inputs.count, neuronsCount: 4, function: .sigmoid),
-            FullyConnectedLayer(inputSize: 4, neuronsCount: 4, function: .sigmoid),
-            FullyConnectedLayer(inputSize: 4, neuronsCount: 1, function: .tanh)
+            FullyConnectedLayer(inputSize: inputs.count, neuronsCount: 4, function: .tanh),
+            FullyConnectedLayer(inputSize: 4, neuronsCount: 4, function: .tanh),
+            FullyConnectedLayer(inputSize: 4, neuronsCount: 1, function: .sigmoid)
         ],
         lossFunction: .meanSquared,
         learningRate: 0.003,
         epochs: 1000,
-        batchSize: 1,
+        batchSize: 16,
         delay: 0
     )
     
@@ -150,12 +146,12 @@ public struct QuartersPreset: NNPreset {
         inputs: inputs,
         layers: [
             FullyConnectedLayer(inputSize: inputs.count, neuronsCount: 4, function: .sigmoid),
-            FullyConnectedLayer(inputSize: 4, neuronsCount: 1, function: .tanh)
+            FullyConnectedLayer(inputSize: 4, neuronsCount: 1, function: .sigmoid)
         ],
         lossFunction: .meanSquared,
-        learningRate: 0.003,
+        learningRate: 0.3,
         epochs: 1000,
-        batchSize: 1,
+        batchSize: 16,
         delay: 0
     )
     
@@ -186,12 +182,12 @@ public struct SpiralPreset: NNPreset {
         inputs: inputs,
         layers: [
             FullyConnectedLayer(inputSize: inputs.count, neuronsCount: 8, function: .tanh),
-            FullyConnectedLayer(inputSize: 8, neuronsCount: 1, function: .tanh)
+            FullyConnectedLayer(inputSize: 8, neuronsCount: 1, function: .sigmoid)
         ],
         lossFunction: .meanSquared,
-        learningRate: 0.003,
+        learningRate: 0.3,
         epochs: 1000,
-        batchSize: 1,
+        batchSize: 16,
         delay: 0
     )
     
