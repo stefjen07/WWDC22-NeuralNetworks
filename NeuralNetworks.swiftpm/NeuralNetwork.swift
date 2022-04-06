@@ -30,27 +30,19 @@ public enum InputType: Int, Codable {
     }
 }
 
-final public class NeuralNetwork: Codable {
+final public class NeuralNetwork {
     internal var layers: [Layer]
     private var lossFunction: LossFunction
     private var learningRate: Float
     private var epochs: Int
     private var batchSize: Int
-    internal var trainScene = SKScene(size: .init(width: 400, height: 800))
+    internal var trainScene: SKScene
     private var delay: Int
     internal var inputNeurons: [Neuron] = []
     private var inputs: [InputType]
     
-    private enum CodingKeys: String, CodingKey {
-        case inputs
-        case layers
-        case inputNeurons
-        case lossFunction
-        case learningRate
-        case epochs
-        case batchSize
-        case delay
-    }
+    public var isTraining: Bool = false
+    public var safeAction: (() -> ())?
     
     var pointsToCheck: [CGPoint] {
         return (0..<Int(canvasRect.height)).flatMap { y in
@@ -117,21 +109,8 @@ final public class NeuralNetwork: Codable {
         }
     }
     
-    static func fromFile(fileName: String) -> NeuralNetwork? {
-        let decoder = JSONDecoder()
-        let url = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(fileName)
-        guard let data = try? Data(contentsOf: url) else {
-            print("Unable to read model from file.")
-            return nil
-        }
-        guard let decoded = try? decoder.decode(NeuralNetwork.self, from: data) else {
-            print("Unable to decode model.")
-            return nil
-        }
-        return decoded
-    }
-    
-    public init(inputs: [InputType], layers: [Layer], lossFunction: LossFunction, learningRate: Float, epochs: Int, batchSize: Int, delay: Int) {
+    public init(scene: SKScene, inputs: [InputType], layers: [Layer], lossFunction: LossFunction, learningRate: Float, epochs: Int, batchSize: Int, delay: Int) {
+        self.trainScene = scene
         self.inputs = inputs
         self.inputNeurons = (0..<inputs.count).map { _ in
             Neuron(weights: [], weightsDelta: [], bias: 0, biasDelta: 0)
@@ -144,46 +123,12 @@ final public class NeuralNetwork: Codable {
         self.delay = delay
     }
     
-    public func encode(to encoder: Encoder) throws {
-        let wrappers = layers.map { LayerWrapper($0) }
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(wrappers, forKey: .layers)
-        try container.encode(inputNeurons, forKey: .inputNeurons)
-        try container.encode(learningRate, forKey: .learningRate)
-        try container.encode(epochs, forKey: .epochs)
-        try container.encode(batchSize, forKey: .batchSize)
-        try container.encode(delay, forKey: .delay)
-        try container.encode(lossFunction, forKey: .lossFunction)
-    }
-    
-    public required init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.inputs = try container.decode([InputType].self, forKey: .inputs)
-        let wrappers = try container.decode([LayerWrapper].self, forKey: .layers)
-        self.layers = wrappers.map { $0.layer }
-        self.inputNeurons = try container.decode([Neuron].self, forKey: .inputNeurons)
-        self.learningRate = try container.decode(Float.self, forKey: .learningRate)
-        self.epochs = try container.decode(Int.self, forKey: .epochs)
-        self.batchSize = try container.decode(Int.self, forKey: .batchSize)
-        self.delay = try container.decode(Int.self, forKey: .delay)
-        self.lossFunction = try container.decode(LossFunction.self, forKey: .lossFunction)
-    }
-    
-    public func saveModel(fileName: String) {
-        let encoder = JSONEncoder()
-        guard let encoded = try? encoder.encode(self) else {
-            print("Unable to encode model.")
-            return
-        }
-        let url = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(fileName)
-        do {
-            try encoded.write(to: url)
-        } catch {
-            print("Unable to write model to disk.")
-        }
-    }
-    
     public func train(set: Dataset) -> Float {
+        if(isTraining) {
+            return 0
+        }
+        
+        isTraining = true
         generateOutputMaps()
         showOutputMaps()
         var error: Float = 0
@@ -217,7 +162,15 @@ final public class NeuralNetwork: Codable {
             }
             error = lossFunction.cost(sum: error, outputSize: outputSize)
             print("Epoch \(epoch+1), error \(error), accuracy \(guessed / Float(outputSize))")
+            
+            if let safeAction = safeAction {
+                safeAction()
+                if !isTraining {
+                    break
+                }
+            }
         }
+        isTraining = false
         return error
     }
     

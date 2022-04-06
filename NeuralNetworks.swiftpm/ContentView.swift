@@ -2,12 +2,17 @@ import SwiftUI
 import SpriteKit
 
 struct ContentView: View {
-    let manager = NNViewManager(size: .init(width: 1000, height: 1000), preset: GaussianPreset())
+    @ObservedObject var manager = NNSceneManager(presetType: .gaussian)
     
     var body: some View {
-        SpriteView(scene: manager.preset.neuralNetwork.trainScene)
-            .onAppear {
-                manager.showScene()
+        VStack {
+            Picker("Neural network preset", selection: $manager.presetType) {
+                ForEach(PresetType.allCases) { presetType in
+                    Text(presetType.rawValue)
+                        .tag(presetType)
+                }
             }
+            SpriteView(scene: manager.scene)
+        }
     }
 } 

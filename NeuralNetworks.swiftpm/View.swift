@@ -1,8 +1,48 @@
 import Foundation
 import SpriteKit
 
-public class NNViewManager {
-    var preset: NNPreset
+public enum PresetType: String, Identifiable, CaseIterable {
+    public var id: Int {
+        hashValue
+    }
+    
+    func preset(with scene: SKScene) -> NNPreset {
+        switch self {
+        case .gaussian:
+            return GaussianPreset(scene: scene)
+        case .quarters:
+            return QuartersPreset(scene: scene)
+        case .circleInCircle:
+            return CircleInCirclePreset(scene: scene)
+        case .spiral:
+            return SpiralPreset(scene: scene)
+        }
+    }
+    
+    case gaussian = "Gaussian"
+    case quarters = "Quarters"
+    case circleInCircle = "Circle-in-circle"
+    case spiral = "Spiral"
+}
+
+public class NNSceneManager: ObservableObject {
+    @Published var presetType: PresetType {
+        didSet {
+            self.preset.neuralNetwork.isTraining = false
+            self.scene.removeAllChildren()
+            preset.neuralNetwork.safeAction = {
+                self.preset = self.presetType.preset(with: self.scene)
+                self.startTraining()
+            }
+            
+            if !preset.neuralNetwork.isTraining {
+                preset.neuralNetwork.safeAction?()
+            }
+        }
+    }
+    var scene: SKScene = .init(size: .init(width: 400, height: 800))
+    
+    private var preset: NNPreset
     
     private func showDatasetImage() {
         let node = SKSpriteNode(texture: preset.datasetImage())
@@ -19,19 +59,26 @@ public class NNViewManager {
         showDatasetImage()
         
         let queue = DispatchQueue(label: "networkQueue")
-        queue.async {
-            self.preset.train()
+        queue.async { [weak self] in
+            self?.preset.train()
         }
     }
     
-    public init(size: CGSize, preset: NNPreset) {
-        self.preset = preset
+    public func startTraining() {
         let camera = SKCameraNode()
         camera.zPosition = 100
-        
-        //preset.neuralNetwork.trainScene.size = .init(width: frame.size.width * 0.25, height: frame.size.height * 0.25)
         preset.neuralNetwork.trainScene.addChild(camera)
         preset.neuralNetwork.trainScene.camera = camera
+        
+        showScene()
+    }
+    
+    public init(presetType: PresetType) {
+        self.presetType = presetType
+        self.preset = presetType.preset(with: scene)
+        self.scene = preset.neuralNetwork.trainScene
+        
+        startTraining()
     }
     
     required init?(coder: NSCoder) {
