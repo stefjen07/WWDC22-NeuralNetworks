@@ -5,7 +5,7 @@ import SpriteKit
 
 extension SKSpriteNode {
     func drawBorder(color: SystemColor, width: CGFloat) {
-        let shapeNode = SKShapeNode(rect: frame)
+        let shapeNode = SKShapeNode(rect: .init(origin: .init(x: -frame.size.width / 2, y: -frame.size.height / 2), size: frame.size))
         shapeNode.fillColor = .clear
         shapeNode.strokeColor = color
         shapeNode.lineWidth = width
@@ -15,7 +15,6 @@ extension SKSpriteNode {
 
 extension NeuralNetwork {
     public func generatePositions() {
-        let padding: CGFloat = 20
         let width = trainScene.size.width - padding * 2
         let height = trainScene.size.height - padding * 2
         let newHeight = height / CGFloat(layers.count + 1 - 1) // + 1 because of input neurons layer
@@ -42,24 +41,25 @@ extension NeuralNetwork {
         for j in 0..<inputNeurons.count {
             if let position = inputNeurons[j].position {
                 let node = SKSpriteNode(texture: inputNeurons[j].texture)
-                node.drawBorder(color: .black, width: 0.25)
                 node.zPosition = 2
                 node.position = position
-                node.size = .init(width: canvasRect.width * 1, height: canvasRect.height * 1)
+                node.size = nodeCanvasSize
                 trainScene.addChild(node)
                 inputNeurons[j].imageObject = node
+                node.drawBorder(color: .black, width: 0.25)
             }
         }
         for i in 0..<layers.count {
             for j in 0..<layers[i].neurons.count {
                 if let position = layers[i].neurons[j].position {
                     let imageNode = SKSpriteNode(texture: layers[i].neurons[j].texture)
-                    imageNode.drawBorder(color: .black, width: 0.25)
                     imageNode.zPosition = 2
                     imageNode.position = position
-                    imageNode.size = .init(width: canvasRect.width * 1, height: canvasRect.height * 1)
+                    imageNode.size = nodeCanvasSize
+                    
                     trainScene.addChild(imageNode)
                     layers[i].neurons[j].imageObject = imageNode
+                    imageNode.drawBorder(color: .black, width: 0.25)
                 }
             }
         }

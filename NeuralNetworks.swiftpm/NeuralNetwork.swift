@@ -43,6 +43,7 @@ final public class NeuralNetwork {
     
     public var isTraining: Bool = false
     public var safeAction: (() -> ())?
+    public var statDelegate: (((accuracy: Double, epoch: Int)) -> ())?
     
     var pointsToCheck: [CGPoint] {
         return (0..<Int(canvasRect.height)).flatMap { y in
@@ -161,7 +162,8 @@ final public class NeuralNetwork {
                 layer.updateSynapses()
             }
             error = lossFunction.cost(sum: error, outputSize: outputSize)
-            print("Epoch \(epoch+1), error \(error), accuracy \(guessed / Float(outputSize))")
+            statDelegate?((accuracy: Double(guessed / Float(outputSize)), epoch: epoch+1))
+            //print("Epoch \(epoch+1), error \(error), accuracy \(guessed / Float(outputSize))")
             
             if let safeAction = safeAction {
                 safeAction()

@@ -13,6 +13,7 @@ struct ContentView: View {
                 }
             }
             SpriteView(scene: manager.scene)
+            Text("Epoch \(manager.epoch), training accuracy: \(manager.accuracy)%")
         }
     }
 } 

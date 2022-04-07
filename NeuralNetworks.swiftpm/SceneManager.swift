@@ -40,16 +40,22 @@ public class NNSceneManager: ObservableObject {
             }
         }
     }
+    
+    @Published var epoch: Int = 0
+    @Published var accuracy: Double = 0
+    
     var scene: SKScene = .init(size: .init(width: 400, height: 800))
     
     private var preset: NNPreset
     
     private func showDatasetImage() {
         let node = SKSpriteNode(texture: preset.datasetImage())
-        node.drawBorder(color: .black, width: 0.25)
+        node.size = nodeCanvasSize
         
         let sceneRect = preset.neuralNetwork.trainScene.frame
-        node.position = .init(x: sceneRect.width/2 - canvasRect.width, y: canvasRect.height - sceneRect.height/2)
+        node.position = .init(x: sceneRect.width/2 - padding, y: -sceneRect.height/2 + padding)
+        
+        node.drawBorder(color: .black, width: 0.25)
         
         preset.neuralNetwork.trainScene.addChild(node)
     }
@@ -69,6 +75,10 @@ public class NNSceneManager: ObservableObject {
         camera.zPosition = 100
         preset.neuralNetwork.trainScene.addChild(camera)
         preset.neuralNetwork.trainScene.camera = camera
+        
+        preset.neuralNetwork.statDelegate = { (stat) in
+            (self.accuracy, self.epoch) = stat
+        }
         
         showScene()
     }

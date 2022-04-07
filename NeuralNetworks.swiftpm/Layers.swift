@@ -2,6 +2,8 @@ import Foundation
 import SpriteKit
 
 let canvasRect = CGRect(x: -10, y: -10, width: 20, height: 20)
+let nodeCanvasSize = CGSize(width: 40, height: 40)
+let padding: CGFloat = 5 + nodeCanvasSize.width/2
 
 public struct LayerWrapper: Codable {
     let layer: Layer
