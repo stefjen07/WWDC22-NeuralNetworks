@@ -176,7 +176,6 @@ final public class NeuralNetwork {
             }
             error = lossFunction.cost(sum: error, outputSize: outputSize)
             statDelegate?((accuracy: Double(100 * guessed / Float(outputSize)), epoch: epoch+1))
-            //print("Epoch \(epoch+1), error \(error), accuracy \(guessed / Float(outputSize))")
             
             if let safeAction = safeAction {
                 safeAction()

@@ -28,15 +28,16 @@ public enum PresetType: String, Identifiable, CaseIterable {
 public class NNSceneManager: ObservableObject {
     @Published var presetType: PresetType {
         didSet {
-            self.preset.neuralNetwork.isTraining = false
-            self.scene.removeAllChildren()
             preset.neuralNetwork.safeAction = {
+                self.scene.removeAllChildren()
                 self.preset = self.presetType.preset(with: self.scene)
                 self.startTraining()
             }
             
             if !preset.neuralNetwork.isTraining {
                 preset.neuralNetwork.safeAction?()
+            } else {
+                preset.neuralNetwork.isTraining = false
             }
         }
     }

@@ -12,7 +12,7 @@ public protocol NNPreset {
 
 extension NNPreset {
     var padding: CGFloat { 
-        5 + nodeCanvasSize.width/2
+        6 + nodeCanvasSize.width/2
     }
 }
 
@@ -73,7 +73,7 @@ extension NNPreset {
 
 public struct GaussianPreset: NNPreset {
     public var canvasRect: CGRect
-    public let nodeCanvasSize: CGSize = .init(width: 50, height: 50)
+    public let nodeCanvasSize: CGSize = .init(width: 80, height: 80)
     public var resultMultiplier: CGFloat = 2
 
     let inputs: [InputType] = [.x, .y]
@@ -84,17 +84,17 @@ public struct GaussianPreset: NNPreset {
     public init(scene: SKScene) {
         self.scene = scene
         
-        let canvasRect = CGRect(x: -10, y: -10, width: 20, height: 20) 
+        let canvasRect = CGRect(x: -20, y: -20, width: 40, height: 40) 
         
         self.neuralNetwork = NeuralNetwork(
             scene: scene, canvasRect: canvasRect,
             inputs: inputs,
             layers: [
-                FullyConnectedLayer(inputSize: inputs.count, neuronsCount: 2, function: .tanh),
+                FullyConnectedLayer(inputSize: inputs.count, neuronsCount: 2, function: .sigmoid),
                 FullyConnectedLayer(inputSize: 2, neuronsCount: 1, function: .sigmoid)
             ],
             lossFunction: .meanSquared,
-            learningRate: 0.0003,
+            learningRate: 0.01,
             epochs: 200,
             batchSize: 1,
             delay: 10
@@ -120,10 +120,12 @@ public struct GaussianPreset: NNPreset {
     }
 }
 
-public struct CircleInCirclePreset: NNPreset {
+public struct QuartersPreset: NNPreset {
     public var canvasRect: CGRect
+    public var resultMultiplier: CGFloat = 3
+
+    public let canvasSize: CGSize = .init(width: 20, height: 20)
     public let nodeCanvasSize: CGSize = .init(width: 50, height: 50)
-    public var resultMultiplier: CGFloat = 2
     
     let inputs: [InputType] = [.x, .y, .sinx, .siny]
     public let neuralNetwork: NeuralNetwork
@@ -134,6 +136,57 @@ public struct CircleInCirclePreset: NNPreset {
         self.scene = scene
         
         let canvasRect = CGRect(x: -10, y: -10, width: 20, height: 20) 
+        
+        self.neuralNetwork = NeuralNetwork(
+            scene: scene, 
+            canvasRect: canvasRect,
+            inputs: inputs,
+            layers: [
+                FullyConnectedLayer(inputSize: inputs.count, neuronsCount: 8, function: .sigmoid),
+                FullyConnectedLayer(inputSize: 8, neuronsCount: 2, function: .sigmoid),
+                FullyConnectedLayer(inputSize: 2, neuronsCount: 1, function: .sigmoid)
+            ],
+            lossFunction: .meanSquared,
+            learningRate: 0.3,
+            epochs: 500,
+            batchSize: 16,
+            delay: 20
+        )
+        
+        self.dataset = Dataset(
+            canvasRect: canvasRect,
+            firstGenerator: {
+                let x = CGFloat.random(in: canvasRect.minX...canvasRect.maxX)
+                let absY = CGFloat.random(in: 0..<canvasRect.maxY)
+                return CGPoint(x: x, y: x < 0 ? absY : -absY)
+            },
+            secondGenerator: {
+                let x = CGFloat.random(in: canvasRect.minX...canvasRect.maxX)
+                let absY = CGFloat.random(in: 0..<canvasRect.maxY)
+                return CGPoint(x: x, y: x < 0 ? -absY : absY)
+            },
+            count: 400,
+            inputs: inputs
+        )
+        
+        self.canvasRect = canvasRect
+    }
+}
+
+public struct CircleInCirclePreset: NNPreset {
+    public var canvasRect: CGRect
+    public let nodeCanvasSize: CGSize = .init(width: 50, height: 50)
+    public var resultMultiplier: CGFloat = 3
+    
+    let inputs: [InputType] = [.x, .y, .sinx, .siny]
+    public let neuralNetwork: NeuralNetwork
+    public let dataset: Dataset
+    let scene: SKScene
+    
+    public init(scene: SKScene) {
+        self.scene = scene
+        
+        let canvasRect = CGRect(x: -10, y: -10, width: 20, height: 20)
         
         self.neuralNetwork = NeuralNetwork(
             scene: scene,
@@ -177,62 +230,9 @@ public struct CircleInCirclePreset: NNPreset {
     }
 }
 
-public struct QuartersPreset: NNPreset {
-    public var canvasRect: CGRect
-    public var resultMultiplier: CGFloat = 2
-
-    public let canvasSize: CGSize = .init(width: 20, height: 20)
-    public let nodeCanvasSize: CGSize = .init(width: 50, height: 50)
-    
-    let inputs: [InputType] = [.x, .y, .sinx, .siny]
-    public let neuralNetwork: NeuralNetwork
-    public let dataset: Dataset
-    let scene: SKScene
-    
-    public init(scene: SKScene) {
-        self.scene = scene
-        
-        let canvasRect = CGRect(x: -10, y: -10, width: 20, height: 20) 
-        
-        self.neuralNetwork = NeuralNetwork(
-            scene: scene, 
-            canvasRect: canvasRect,
-            inputs: inputs,
-            layers: [
-                FullyConnectedLayer(inputSize: inputs.count, neuronsCount: 4, function: .tanh),
-                FullyConnectedLayer(inputSize: 4, neuronsCount: 2, function: .tanh),
-                FullyConnectedLayer(inputSize: 2, neuronsCount: 1, function: .sigmoid)
-            ],
-            lossFunction: .meanSquared,
-            learningRate: 0.03,
-            epochs: 500,
-            batchSize: 16,
-            delay: 20
-        )
-        
-        self.dataset = Dataset(
-            canvasRect: canvasRect,
-            firstGenerator: {
-                let x = CGFloat.random(in: canvasRect.minX...canvasRect.maxX)
-                let absY = CGFloat.random(in: 0..<canvasRect.maxY)
-                return CGPoint(x: x, y: x < 0 ? absY : -absY)
-            },
-            secondGenerator: {
-                let x = CGFloat.random(in: canvasRect.minX...canvasRect.maxX)
-                let absY = CGFloat.random(in: 0..<canvasRect.maxY)
-                return CGPoint(x: x, y: x < 0 ? -absY : absY)
-            },
-            count: 400,
-            inputs: inputs
-        )
-        
-        self.canvasRect = canvasRect
-    }
-}
-
 public struct SpiralPreset: NNPreset {
     public let canvasRect: CGRect
-    public var resultMultiplier: CGFloat = 4
+    public var resultMultiplier: CGFloat = 6
     
     public let canvasSize: CGSize = .init(width: 20, height: 20)
     public let nodeCanvasSize: CGSize = .init(width: 20, height: 20)
@@ -253,7 +253,8 @@ public struct SpiralPreset: NNPreset {
             layers: [
                 FullyConnectedLayer(inputSize: inputs.count, neuronsCount: 16, function: .tanh),
                 FullyConnectedLayer(inputSize: 16, neuronsCount: 4, function: .tanh),
-                FullyConnectedLayer(inputSize: 4, neuronsCount: 1, function: .sigmoid)
+                FullyConnectedLayer(inputSize: 4, neuronsCount: 2, function: .tanh),
+                FullyConnectedLayer(inputSize: 2, neuronsCount: 1, function: .sigmoid)
             ],
             lossFunction: .meanSquared,
             learningRate: 0.03,
