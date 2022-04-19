@@ -1,6 +1,4 @@
 import SwiftUI
-
-import Foundation
 import CoreGraphics
 import SpriteKit
 
@@ -41,6 +39,11 @@ final public class NeuralNetwork {
     internal var inputNeurons: [Neuron] = []
     private var inputs: [InputType]
     
+    private var canvasRect: CGRect = .zero
+    public var nodeCanvasSize: CGSize = .zero
+    public var padding: CGFloat = .zero
+    public var resultMultiplier: CGFloat = .zero
+    
     public var isTraining: Bool = false
     public var safeAction: (() -> ())?
     public var statDelegate: (((accuracy: Double, epoch: Int)) -> ())?
@@ -72,12 +75,14 @@ final public class NeuralNetwork {
                 let pixelBuffer = UnsafeMutableBufferPointer(start: pixelPtr, count: pixelCount)
                 for (index, value) in self.normalMap(neuronIndex: neuronIndex).enumerated() {
                     let value = value * 255
-                    pixelBuffer[index] = RGBA(
-                        red: UInt8(max(0, min(255, value))),
-                        green: 0,
-                        blue: UInt8(max(0, min(255, 255 - value))),
-                        alpha: 255
-                    )
+                    if index < pixelCount {
+                        pixelBuffer[index] = RGBA(
+                            red: UInt8(max(0, min(255, value))),
+                            green: 0,
+                            blue: UInt8(max(0, min(255, 255 - value))),
+                            alpha: 255
+                        )
+                    }
                 }
             }
         }
@@ -110,18 +115,26 @@ final public class NeuralNetwork {
         }
     }
     
-    public init(scene: SKScene, inputs: [InputType], layers: [Layer], lossFunction: LossFunction, learningRate: Float, epochs: Int, batchSize: Int, delay: Int) {
+    public init(scene: SKScene, canvasRect: CGRect, inputs: [InputType], layers: [Layer], lossFunction: LossFunction, learningRate: Float, epochs: Int, batchSize: Int, delay: Int) {
         self.trainScene = scene
         self.inputs = inputs
         self.inputNeurons = (0..<inputs.count).map { _ in
             Neuron(weights: [], weightsDelta: [], bias: 0, biasDelta: 0)
         }
+        self.canvasRect = canvasRect
         self.layers = layers
         self.lossFunction = lossFunction
         self.learningRate = learningRate
         self.epochs = epochs
         self.batchSize = batchSize
         self.delay = delay
+        
+        inputNeurons.forEach { neuron in
+            neuron.canvasSize = canvasRect.size
+        }
+        layers.forEach { layer in
+            layer.canvasSize = canvasRect.size
+        }
     }
     
     public func train(set: Dataset) -> Float {
@@ -162,7 +175,7 @@ final public class NeuralNetwork {
                 layer.updateSynapses()
             }
             error = lossFunction.cost(sum: error, outputSize: outputSize)
-            statDelegate?((accuracy: Double(guessed / Float(outputSize)), epoch: epoch+1))
+            statDelegate?((accuracy: Double(100 * guessed / Float(outputSize)), epoch: epoch+1))
             //print("Epoch \(epoch+1), error \(error), accuracy \(guessed / Float(outputSize))")
             
             if let safeAction = safeAction {

@@ -1,6 +1,4 @@
 import SwiftUI
-
-import Foundation
 import SpriteKit
 
 class Neuron: Codable {
@@ -29,30 +27,37 @@ class Neuron: Codable {
     }
     
     init(weights: [Float], weightsDelta: [Float], bias: Float, biasDelta: Float) {
+        
         self.weights = weights
         self.weightsDelta = weightsDelta
         self.bias = bias
         self.biasDelta = biasDelta
     }
     
+    var canvasSize: CGSize = .zero {
+        didSet {
+            self.outputMap = Array(
+                repeating: Array(
+                    repeating: 0,
+                    count: Int(canvasSize.width)
+                ),
+                count: Int(canvasSize.height)
+            )
+            self.texture = SKMutableTexture(
+                size: canvasSize,
+                pixelFormat: Int32(kCVPixelFormatType_32RGBA)
+            )
+        }
+    }
     var output: Float = 0
-    var outputMap: [[Float]] = .init(
-        repeating: .init(
-            repeating: 0,
-            count: Int(canvasRect.width)
-        ),
-        count: Int(canvasRect.height)
-    )
+    var outputMap: [[Float]] = .init()
     var weights: [Float]
     var weightsDelta: [Float]
     var bias: Float
     var biasDelta: Float
     var totalBiasDelta: Float = 0
     var imageObject: SKSpriteNode?
-    var texture: SKMutableTexture = SKMutableTexture(
-        size: canvasRect.size,
-        pixelFormat: Int32(kCVPixelFormatType_32RGBA)
-    )
+    var texture: SKMutableTexture = .init()
     var synapses: [SKShapeNode] = []
     var position: CGPoint?
 }

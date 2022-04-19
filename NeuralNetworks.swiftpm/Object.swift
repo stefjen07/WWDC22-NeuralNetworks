@@ -1,6 +1,4 @@
 import SwiftUI
-
-import Foundation
 import SpriteKit
 
 extension SKSpriteNode {
@@ -54,8 +52,16 @@ extension NeuralNetwork {
                 if let position = layers[i].neurons[j].position {
                     let imageNode = SKSpriteNode(texture: layers[i].neurons[j].texture)
                     imageNode.zPosition = 2
-                    imageNode.position = position
-                    imageNode.size = nodeCanvasSize
+                    
+                    if i == layers.count - 1 {
+                        imageNode.size = .init(width: nodeCanvasSize.width * resultMultiplier, height: nodeCanvasSize.height * resultMultiplier)
+                        imageNode.position = .init(x: position.x + imageNode.size.width/2 - padding, y: position.y + imageNode.size.height/2 - padding)
+                        
+                        print(imageNode.size, imageNode.position)
+                    } else {
+                        imageNode.position = position
+                        imageNode.size = nodeCanvasSize
+                    }
                     
                     trainScene.addChild(imageNode)
                     layers[i].neurons[j].imageObject = imageNode
@@ -105,7 +111,7 @@ extension NeuralNetwork {
     }
     
     public func generateScene() {
-        trainScene.backgroundColor = .white
+        trainScene.backgroundColor = .systemBackground
         generatePositions()
         generateObjects()
         generateInputMaps()

@@ -139,12 +139,18 @@ public struct Dataset: Codable {
         self.items = decoded.items
     }
     
-    public init(firstGenerator: () -> CGPoint, secondGenerator: () -> CGPoint, count: Int, inputs: [InputType]) {
+    public init(canvasRect: CGRect, firstGenerator: () -> CGPoint, secondGenerator: () -> CGPoint, count: Int, inputs: [InputType]) {
         items = (0..<count/2).map { _ in
-            let point = firstGenerator()
+            var point = firstGenerator()
+            while !canvasRect.contains(point) {
+                point = firstGenerator()
+            }
             return .init(point: point, input: inputs.map { $0.inputForPoint(point) }, output: 1)
         } + (0..<count/2).map { _ in
-            let point = secondGenerator()
+            var point = secondGenerator()
+            while !canvasRect.contains(point) {
+                point = secondGenerator()
+            }
             return .init(point: point, input: inputs.map { $0.inputForPoint(point) }, output: 0)
         }
     }

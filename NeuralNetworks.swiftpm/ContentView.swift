@@ -12,8 +12,10 @@ struct ContentView: View {
                         .tag(presetType)
                 }
             }
+            .pickerStyle(.menu)
             SpriteView(scene: manager.scene)
+                .aspectRatio(0.5, contentMode: .fit)
             Text("Epoch \(manager.epoch), training accuracy: \(manager.accuracy)%")
-        }
+        }.padding(.all, 15)
     }
 } 

@@ -50,10 +50,12 @@ public class NNSceneManager: ObservableObject {
     
     private func showDatasetImage() {
         let node = SKSpriteNode(texture: preset.datasetImage())
-        node.size = nodeCanvasSize
+        node.size = .init(width: preset.nodeCanvasSize.width * preset.resultMultiplier, height: preset.nodeCanvasSize.height * preset.resultMultiplier)
         
         let sceneRect = preset.neuralNetwork.trainScene.frame
-        node.position = .init(x: sceneRect.width/2 - padding, y: -sceneRect.height/2 + padding)
+        node.position = .init(x: sceneRect.width/2 - node.size.width/2, y: -sceneRect.height/2 + node.size.height/2)
+        
+        print(node.position, node.size)
         
         node.drawBorder(color: .black, width: 0.25)
         
@@ -61,7 +63,6 @@ public class NNSceneManager: ObservableObject {
     }
     
     public func showScene() {
-        preset.neuralNetwork.generateScene()
         showDatasetImage()
         
         let queue = DispatchQueue(label: "networkQueue")
@@ -76,8 +77,16 @@ public class NNSceneManager: ObservableObject {
         preset.neuralNetwork.trainScene.addChild(camera)
         preset.neuralNetwork.trainScene.camera = camera
         
+        preset.neuralNetwork.padding = preset.padding
+        preset.neuralNetwork.nodeCanvasSize = preset.nodeCanvasSize
+        preset.neuralNetwork.resultMultiplier = preset.resultMultiplier
+        
+        preset.neuralNetwork.generateScene()
+        
         preset.neuralNetwork.statDelegate = { (stat) in
-            (self.accuracy, self.epoch) = stat
+            DispatchQueue.main.async {
+                (self.accuracy, self.epoch) = stat
+            }
         }
         
         showScene()

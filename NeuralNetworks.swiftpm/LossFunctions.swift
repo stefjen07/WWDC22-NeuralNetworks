@@ -1,14 +1,5 @@
 import SwiftUI
 
-//
-//  LossFunctions.swift
-//  NeuralNetworksApp
-//
-//  Created by Yauheni on 3/22/22.
-//
-
-import Foundation
-
 public enum LossFunction: Int, Codable {
     case meanSquared = 0
     case binary

@@ -16,6 +16,8 @@ let package = Package(
         .iOSApplication(
             name: "Neural Network Visualization",
             targets: ["AppModule"],
+            bundleIdentifier: "com.stefjen07.NeuralNetwork",
+            teamIdentifier: "S4TJY8UCM7",
             displayVersion: "1.0",
             bundleVersion: "1",
             iconAssetName: "AppIcon",

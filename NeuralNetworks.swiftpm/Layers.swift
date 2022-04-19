@@ -1,10 +1,6 @@
 import Foundation
 import SpriteKit
 
-let canvasRect = CGRect(x: -10, y: -10, width: 20, height: 20)
-let nodeCanvasSize = CGSize(width: 40, height: 40)
-let padding: CGFloat = 5 + nodeCanvasSize.width/2
-
 public struct LayerWrapper: Codable {
     let layer: Layer
     
@@ -46,25 +42,14 @@ public struct LayerWrapper: Codable {
 
 public class Layer: Codable {
     var neurons: [Neuron]
+    var canvasSize: CGSize = .zero {
+        didSet {
+            neurons.forEach { neuron in
+                neuron.canvasSize = canvasSize
+            }
+        }
+    }
     fileprivate var function: ActivationFunction
-    
-    private enum CodingKeys: String, CodingKey {
-        case neurons
-        case function
-        case output
-    }
-    
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(function.rawValue, forKey: .function)
-        try container.encode(neurons, forKey: .neurons)
-    }
-    
-    public required init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        function = try container.decode(ActivationFunction.self, forKey: .function)
-        neurons = try container.decode([Neuron].self, forKey: .neurons)
-    }
     
     func modifyTexture(_ texture: SKMutableTexture, neuronIndex: Int) {
         DispatchQueue.main.async {
@@ -74,7 +59,9 @@ public class Layer: Codable {
                 let pixelBuffer = UnsafeMutableBufferPointer(start: pixelPtr, count: pixelCount)
                 for (index, value) in self.neurons[neuronIndex].outputMap.reduce([], +).enumerated() {
                     let color = valueToColor(value)
-                    pixelBuffer[index] = RGBA(color: color)
+                    if index < pixelCount {
+                        pixelBuffer[index] = RGBA(color: color)
+                    }
                 }
             }
         }
