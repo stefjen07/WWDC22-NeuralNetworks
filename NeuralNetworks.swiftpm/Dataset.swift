@@ -115,30 +115,6 @@ public struct DataItem: Codable {
 public struct Dataset: Codable {
     public var items: [DataItem]
     
-    public func save(to url: URL) {
-        let encoder = JSONEncoder()
-        guard let encoded = try? encoder.encode(self) else {
-            print("Unable to encode model.")
-            return
-        }
-        do {
-            try encoded.write(to: url)
-        } catch {
-            print("Unable to write model to disk.")
-        }
-    }
-    
-    public init(from url: URL) {
-        let decoder = JSONDecoder()
-        guard let data = try? Data(contentsOf: url) else {
-            fatalError("Unable to get data from Dataset file.")
-        }
-        guard let decoded = try? decoder.decode(Dataset.self, from: data) else {
-            fatalError("Unable to decode data from Dataset file.")
-        }
-        self.items = decoded.items
-    }
-    
     public init(canvasRect: CGRect, firstGenerator: () -> CGPoint, secondGenerator: () -> CGPoint, count: Int, inputs: [InputType]) {
         items = (0..<count/2).map { _ in
             var point = firstGenerator()

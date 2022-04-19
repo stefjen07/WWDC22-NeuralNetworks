@@ -55,8 +55,6 @@ public class NNSceneManager: ObservableObject {
         let sceneRect = preset.neuralNetwork.trainScene.frame
         node.position = .init(x: sceneRect.width/2 - node.size.width/2, y: -sceneRect.height/2 + node.size.height/2)
         
-        print(node.position, node.size)
-        
         node.drawBorder(color: .black, width: 0.25)
         
         preset.neuralNetwork.trainScene.addChild(node)

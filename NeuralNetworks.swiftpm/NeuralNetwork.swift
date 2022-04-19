@@ -167,7 +167,7 @@ final public class NeuralNetwork {
                     layer.updateWeights(batchSize: batchSize, learningRate: learningRate)
                 }
                 shuffledSet.removeFirst(min(self.batchSize, shuffledSet.count))
-                usleep(useconds_t(delay * 1000))
+                usleep(useconds_t(delay))
             }
             generateOutputMaps()
             showOutputMaps()

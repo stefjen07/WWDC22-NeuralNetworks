@@ -95,9 +95,9 @@ public struct GaussianPreset: NNPreset {
             ],
             lossFunction: .meanSquared,
             learningRate: 0.0003,
-            epochs: 1000,
+            epochs: 200,
             batchSize: 1,
-            delay: 0
+            delay: 10
         )
         
         self.dataset = Dataset(
@@ -146,9 +146,9 @@ public struct CircleInCirclePreset: NNPreset {
             ],
             lossFunction: .meanSquared,
             learningRate: 0.3,
-            epochs: 1000,
+            epochs: 500,
             batchSize: 16,
-            delay: 0
+            delay: 30
         )
         
         self.dataset = Dataset(
@@ -205,9 +205,9 @@ public struct QuartersPreset: NNPreset {
             ],
             lossFunction: .meanSquared,
             learningRate: 0.03,
-            epochs: 1000,
+            epochs: 500,
             batchSize: 16,
-            delay: 0
+            delay: 20
         )
         
         self.dataset = Dataset(
@@ -259,7 +259,7 @@ public struct SpiralPreset: NNPreset {
             learningRate: 0.03,
             epochs: 1000,
             batchSize: 16,
-            delay: 0
+            delay: 10
         )
         
         self.dataset = Dataset(

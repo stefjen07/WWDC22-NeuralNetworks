@@ -56,8 +56,6 @@ extension NeuralNetwork {
                     if i == layers.count - 1 {
                         imageNode.size = .init(width: nodeCanvasSize.width * resultMultiplier, height: nodeCanvasSize.height * resultMultiplier)
                         imageNode.position = .init(x: position.x + imageNode.size.width/2 - padding, y: position.y + imageNode.size.height/2 - padding)
-                        
-                        print(imageNode.size, imageNode.position)
                     } else {
                         imageNode.position = position
                         imageNode.size = nodeCanvasSize
